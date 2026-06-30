@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>WebAR本番</title>
+<script src="error_guard.js"></script>
+<script src="menu_data.js"></script>
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    font-family: system-ui, "Yu Gothic", sans-serif;
+    background: #f7f4ee;
+    color: #2f2a24;
+  }
+  .setup {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 22px clamp(14px, 4vw, 32px) 48px;
+  }
+  h1 { margin: 0 0 8px; font-size: clamp(26px, 5vw, 42px); }
+  p { color: #60574d; line-height: 1.7; }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin: 18px 0;
+  }
+  .food-card, .marker-card {
+    background: #fff;
+    border: 1px solid #ded8cc;
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .food-card button {
+    width: 100%;
+    border: 0;
+    border-radius: 8px;
+    background: #2f6f73;
+    color: #fff;
+    padding: 10px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .food-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .food-row img { width: 82px; height: 82px; object-fit: cover; border-radius: 8px; }
+  .food-row strong { display: block; font-size: 20px; }
+  .food-row small { color: #6f6559; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .primary, .secondary {
+    border: 0;
+    border-radius: 8px;
+    min-height: 48px;
+    padding: 12px 18px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+  .primary { background: #c65f3a; color: #fff; }
+  .secondary { background: #fff; color: #2f2a24; border: 1px solid #ded8cc; text-decoration: none; display: inline-flex; align-items: center; }
+  .marker-card img { width: 100%; max-width: 260px; display: block; margin: 0 auto; }
+  .ar-layer {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: #000;
+  }
+  body.ar-active .setup { display: none; }
+  body.ar-active .ar-layer { display: block; }
+  #arScene {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .hud {
+    position: fixed;
+    z-index: 120;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 8px;
+    align-items: end;
+    pointer-events: none;
+  }
+  .hud-card {
+    pointer-events: auto;
+    background: rgba(255,255,255,.94);
+    border-radius: 8px;
+    padding: 10px;
+    min-width: 0;
+  }
+  .hud-card strong { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hud-card button, .close-ar, .camera-btn {
+    width: 100%;
+    margin-top: 8px;
+    border: 0;
+    border-radius: 8px;
+    background: #2f6f73;
+    color: #fff;
+    min-height: 42px;
+    font-weight: 900;
+  }
+  .decide {
+    pointer-events: auto;
+    border: 0;
+    border-radius: 8px;
+    background: #c65f3a;
+    color: #fff;
+    padding: 14px 18px;
+    font-weight: 900;
+  }
+  .top-controls {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    z-index: 130;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .top-controls button {
+    pointer-events: auto;
+    border: 0;
+    border-radius: 8px;
+    background: rgba(255,255,255,.94);
+    color: #2f2a24;
+    min-height: 42px;
+    padding: 8px 12px;
+    font-weight: 900;
+  }
+  .picker {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0,0,0,.45);
+    padding: 12px;
+  }
+  .picker.open { display: grid; place-items: end center; }
+  .picker-inner {
+    width: min(980px, 100%);
+    max-height: 82vh;
+    overflow: auto;
+    background: #fbfaf6;
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .picker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 10px;
+  }
+  .picker-item {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    border: 1px solid #ded8cc;
+    background: #fff;
+    border-radius: 8px;
+    padding: 8px;
+    cursor: pointer;
+  }
+  .picker-item img { width: 58px; height: 58px; border-radius: 8px; object-fit: cover; }
+  .picker-item strong, .picker-item small { display: block; }
+  .status {
+    position: fixed;
+    top: 62px;
+    left: 10px;
+    right: 10px;
+    z-index: 120;
+    text-align: center;
+    color: #fff;
+    text-shadow: 0 2px 8px #000;
+    font-weight: 900;
+    pointer-events: none;
+  }
+  @media (max-width: 700px) {
+    .hud { grid-template-columns: 1fr; }
+    .decide { order: 3; }
+  }
+</style>
+</head>
+<body>
+<main class="setup">
+  <h1>WebARでメニューを選ぶ</h1>
+  <p>Hiroマーカーを2枚並べると、左と右に別々の料理が浮かびます。まず下の2品を確認してからARを起動してください。</p>
+
+  <section class="cards" aria-label="表示する料理">
+    <article class="food-card">
+      <div class="food-row">
+        <img id="leftPreviewImg" alt="">
+        <div><strong id="leftPreviewName"></strong><small>左のマーカー</small></div>
+      </div>
+      <button type="button" data-side="left" class="change-food">左を変更</button>
+    </article>
+    <article class="food-card">
+      <div class="food-row">
+        <img id="rightPreviewImg" alt="">
+        <div><strong id="rightPreviewName"></strong><small>右のマーカー</small></div>
+      </div>
+      <button type="button" data-side="right" class="change-food">右を変更</button>
+    </article>
+  </section>
+
+  <section class="cards">
+    <article class="marker-card">
+      <h2>Hiroマーカー</h2>
+      <p>同じHiroマーカーを2枚印刷し、少し離して置いてください。</p>
+      <img src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/images/hiro.png" alt="Hiroマーカー">
+    </article>
+  </section>
+
+  <div class="actions">
+    <button class="primary" id="startAR" type="button">ARを起動する</button>
+    <button class="secondary" id="cameraToggle" type="button">カメラ: アウト</button>
+    <a class="secondary" href="選択支援メニュー.html">選択画面に戻る</a>
+  </div>
+</main>
+
+<div class="ar-layer">
+  <a-scene
+    id="arScene"
+    embedded
+    renderer="alpha: true; antialias: true; precision: mediump"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: true"
+    arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false; detectionMode: mono; maxDetectionRate: 30;">
+  </a-scene>
+  <div class="top-controls">
+    <button class="close-ar" id="closeAR" type="button">閉じる</button>
+    <button class="camera-btn" id="cameraToggleAR" type="button">カメラ切替</button>
+  </div>
+  <div class="status" id="statusText">マーカーをカメラに映してください</div>
+  <div class="hud">
+    <div class="hud-card"><strong id="leftHudName"></strong><button type="button" data-side="left" class="change-food">左を変更</button></div>
+    <button class="decide" id="decideBtn" type="button">これにする</button>
+    <div class="hud-card"><strong id="rightHudName"></strong><button type="button" data-side="right" class="change-food">右を変更</button></div>
+  </div>
+</div>
+
+<div class="picker" id="picker">
+  <div class="picker-inner">
+    <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:12px;">
+      <h2 id="pickerTitle" style="margin:0;">料理を選ぶ</h2>
+      <button class="secondary" id="closePicker" type="button">閉じる</button>
+    </div>
+    <div class="picker-grid" id="pickerGrid"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const items = window.MENU_ITEMS || [];
+  const selectedKey = 'senshakuSelectedIds';
+  const arKey = 'webar_lr_selection';
+  const camKey = 'webar_camera_facing';
+  let cameraFacing = localStorage.getItem(camKey) || 'environment';
+  let targetSide = 'left';
+  let markerVisible = { left: false, right: false };
+
+  function savedIds() {
+    try {
+      const ids = JSON.parse(localStorage.getItem(selectedKey) || '[]');
+      return Array.isArray(ids) ? ids : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function indexById(id, fallback) {
+    const index = items.findIndex((item) => item.id === id);
+    return index >= 0 ? index : fallback;
+  }
+
+  function loadPair() {
+    let pair = null;
+    try { pair = JSON.parse(localStorage.getItem(arKey) || 'null'); } catch (_) {}
+    const ids = savedIds();
+    const leftId = pair?.left || ids[0] || items[0]?.id;
+    const rightId = pair?.right || ids[1] || items[1]?.id || leftId;
+    return { left: indexById(leftId, 0), right: indexById(rightId, Math.min(1, items.length - 1)) };
+  }
+
+  let current = loadPair();
+
+  function savePair() {
+    localStorage.setItem(arKey, JSON.stringify({
+      left: items[current.left]?.id,
+      right: items[current.right]?.id
+    }));
+  }
+
+  function colorOf(item) {
+    return item.color || '#7B9EC9';
+  }
+
+  function hot(item) {
+    return /ramen|curry|udon|soup|coffee|stew|gratin/.test(item.id);
+  }
+
+  function foodEntity(item, side) {
+    const color = colorOf(item);
+    const tilt = side === 'left' ? '-8 16 0' : '-8 -16 0';
+    const steam = hot(item) ? `
+      <a-sphere radius="0.04" position="0.08 1.02 0.04" material="color:#fff; opacity:.18; transparent:true"
+        animation__rise="property: position; from: 0.08 .90 .04; to: .10 1.82 .08; dur: 3400; loop: true; easing: easeOutQuad"
+        animation__fade="property: material.opacity; from: .28; to: 0; dur: 3400; loop: true; easing: easeOutQuad"></a-sphere>
+      <a-sphere radius="0.03" position="-0.10 .96 .06" material="color:#fff; opacity:.14; transparent:true"
+        animation__rise="property: position; from: -0.10 .82 .06; to: -.14 1.90 -.02; dur: 3900; loop: true; delay: 700; easing: easeOutQuad"
+        animation__fade="property: material.opacity; from: .22; to: 0; dur: 3900; loop: true; delay: 700; easing: easeOutQuad"></a-sphere>` : '';
+    return `
+      <a-entity id="food-${side}" rotation="${tilt}" animation__float="property: position; to: 0 .04 0; dir: alternate; dur: 2600; loop: true; easing: easeInOutSine">
+        <a-circle radius="1.48" rotation="-90 0 0" position="0 .001 0" material="color:#000; opacity:.20; transparent:true; shader:flat"></a-circle>
+        <a-circle radius="1.18" rotation="-90 0 0" position="0 .003 0" material="color:#000; opacity:.07; transparent:true; shader:flat"></a-circle>
+        <a-ring radius-inner=".76" radius-outer="1.02" rotation="-90 0 0" position="0 .006 0" material="color:#000; opacity:.10; transparent:true; side:double; shader:flat"></a-ring>
+        <a-entity position="0 .18 0">
+          <a-cylinder radius="1.02" height=".16" material="color:#F7ECDD; roughness:.74; metalness:.02"></a-cylinder>
+          <a-cylinder radius=".84" height=".32" position="0 .10 0" material="src:#tex-${item.id}; roughness:.82; metalness:.01"></a-cylinder>
+          <a-circle radius=".86" rotation="-90 0 0" position="0 .25 0" material="src:#tex-${item.id}; side:double; roughness:.76; metalness:.01"></a-circle>
+          <a-torus radius=".92" radius-tubular=".034" color="#fff" position="0 .03 0" rotation="-90 0 0" material="roughness:.26; metalness:.12; opacity:.88; transparent:true"></a-torus>
+          <a-ring radius-inner=".95" radius-outer="1.32" color="${color}" rotation="-90 0 0" position="0 .02 0" material="opacity:.18; transparent:true; side:double; shader:flat; emissive:${color}; emissiveIntensity:.18"></a-ring>
+          <a-sphere radius=".08" position=".24 .98 .18" material="color:#fff; opacity:.12; transparent:true; shader:flat"></a-sphere>
+          ${steam}
+          <a-text value="${item.name}" align="center" width="3.2" position="0 -.10 1.05" rotation="-80 0 0" color="#2f2a24"></a-text>
+        </a-entity>
+      </a-entity>`;
+  }
+
+  function renderScene() {
+    const scene = document.getElementById('arScene');
+    scene.innerHTML = `
+      <a-assets>
+        ${items.map((item) => `<img id="tex-${item.id}" src="${item.image}" crossorigin="anonymous">`).join('')}
+      </a-assets>
+      <a-marker preset="hiro" id="marker-left" emitevents="true">${foodEntity(items[current.left], 'left')}</a-marker>
+      <a-marker preset="hiro" id="marker-right" emitevents="true">${foodEntity(items[current.right], 'right')}</a-marker>
+      <a-entity camera></a-entity>
+      <a-entity light="type: ambient; intensity: .72"></a-entity>
+      <a-entity light="type: directional; intensity: .72" position="1 3 2"></a-entity>
+    `;
+    bindMarkerEvents();
+  }
+
+  function bindMarkerEvents() {
+    ['left', 'right'].forEach((side) => {
+      const marker = document.getElementById(`marker-${side}`);
+      if (!marker) return;
+      marker.addEventListener('markerFound', () => { markerVisible[side] = true; updateStatus(); });
+      marker.addEventListener('markerLost', () => { markerVisible[side] = false; updateStatus(); });
+    });
+  }
+
+  function updateStatus() {
+    const status = document.getElementById('statusText');
+    const visibleCount = Number(markerVisible.left) + Number(markerVisible.right);
+    status.textContent = visibleCount ? `${visibleCount}枚のマーカーを認識中` : 'マーカーをカメラに映してください';
+  }
+
+  function refreshLabels() {
+    const left = items[current.left];
+    const right = items[current.right];
+    document.getElementById('leftPreviewImg').src = left.image;
+    document.getElementById('rightPreviewImg').src = right.image;
+    document.getElementById('leftPreviewName').textContent = left.name;
+    document.getElementById('rightPreviewName').textContent = right.name;
+    document.getElementById('leftHudName').textContent = left.name;
+    document.getElementById('rightHudName').textContent = right.name;
+    document.getElementById('cameraToggle').textContent = cameraFacing === 'user' ? 'カメラ: イン' : 'カメラ: アウト';
+  }
+
+  function openPicker(side) {
+    targetSide = side;
+    document.getElementById('pickerTitle').textContent = `${side === 'left' ? '左' : '右'}に表示する料理を選ぶ`;
+    document.getElementById('picker').classList.add('open');
+    document.getElementById('pickerGrid').innerHTML = items.map((item, index) => `
+      <button class="picker-item" type="button" data-index="${index}">
+        <img src="${item.image}" alt="${item.name}">
+        <span><strong>${item.name}</strong><small>${item.reading}</small></span>
+      </button>
+    `).join('');
+    document.querySelectorAll('.picker-item').forEach((button) => {
+      button.addEventListener('click', () => {
+        current[targetSide] = Number(button.dataset.index);
+        savePair();
+        refreshLabels();
+        renderScene();
+        closePicker();
+      });
+    });
+  }
+
+  function closePicker() {
+    document.getElementById('picker').classList.remove('open');
+  }
+
+  function toggleCamera() {
+    cameraFacing = cameraFacing === 'user' ? 'environment' : 'user';
+    localStorage.setItem(camKey, cameraFacing);
+    refreshLabels();
+    alert('カメラ設定を変更しました。AR起動中の場合は、いったん閉じて再起動してください。');
+  }
+
+  document.querySelectorAll('.change-food').forEach((button) => {
+    button.addEventListener('click', () => openPicker(button.dataset.side));
+  });
+  document.getElementById('closePicker').addEventListener('click', closePicker);
+  document.getElementById('picker').addEventListener('click', (event) => {
+    if (event.target.id === 'picker') closePicker();
+  });
+  document.getElementById('cameraToggle').addEventListener('click', toggleCamera);
+  document.getElementById('cameraToggleAR').addEventListener('click', toggleCamera);
+  document.getElementById('startAR').addEventListener('click', () => {
+    document.body.classList.add('ar-active');
+    renderScene();
+  });
+  document.getElementById('closeAR').addEventListener('click', () => {
+    document.body.classList.remove('ar-active');
+    document.getElementById('arScene').innerHTML = '';
+  });
+  document.getElementById('decideBtn').addEventListener('click', () => {
+    const selected = markerVisible.right ? items[current.right] : items[current.left];
+    alert(`${selected.name} を選びました`);
+  });
+
+  refreshLabels();
+})();
+</script>
+</body>
+</html>
