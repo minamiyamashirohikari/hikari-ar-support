@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>運用マニュアル - 選択支援メニューシステム</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet">
+<script src="error_guard.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    font-family: 'Zen Maru Gothic', 'M PLUS Rounded 1c', sans-serif;
+    background: #FFF8F0;
+    color: #3D2E1F;
+    line-height: 1.7;
+  }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: #3D2E1F;
+    color: #FFE8CC;
+    padding: 14px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  }
+  .topbar .title { font-size: 16px; font-weight: 800; }
+  .topbar .back {
+    background: #C85A2B;
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 800;
+    text-decoration: none;
+  }
+
+  .hero {
+    background: linear-gradient(135deg, #4CD964 0%, #2D8A3E 100%);
+    color: #fff;
+    padding: 40px 24px;
+    text-align: center;
+  }
+  .hero h1 {
+    font-size: 28px;
+    font-weight: 900;
+    margin-bottom: 8px;
+  }
+  .hero .sub {
+    font-size: 14px;
+    opacity: 0.95;
+  }
+  .hero .icon {
+    font-size: 50px;
+    margin-bottom: 10px;
+  }
+
+  .container {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 30px 22px 60px;
+  }
+
+  /* Table of contents */
+  .toc {
+    background: #fff;
+    border-radius: 16px;
+    padding: 22px 26px;
+    border: 2px solid #F0E4D0;
+    margin-bottom: 30px;
+  }
+  .toc h2 {
+    font-size: 16px;
+    font-weight: 900;
+    color: #C85A2B;
+    margin-bottom: 12px;
+  }
+  .toc ol {
+    padding-left: 22px;
+  }
+  .toc ol li {
+    padding: 4px 0;
+    font-size: 13px;
+  }
+  .toc a {
+    color: #3D2E1F;
+    text-decoration: none;
+    font-weight: 700;
+  }
+  .toc a:hover {
+    color: #C85A2B;
+    text-decoration: underline;
+  }
+
+  /* Section */
+  .section {
+    margin-bottom: 40px;
+    scroll-margin-top: 80px;
+  }
+  .section-title {
+    font-size: 22px;
+    font-weight: 900;
+    color: #3D2E1F;
+    margin-bottom: 14px;
+    padding: 12px 18px;
+    background: linear-gradient(90deg, #FFE8CC 0%, transparent 100%);
+    border-left: 6px solid #C85A2B;
+    border-radius: 0 12px 12px 0;
+  }
+  .section h3 {
+    font-size: 17px;
+    font-weight: 900;
+    color: #C85A2B;
+    margin: 20px 0 10px;
+  }
+  .section p {
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+
+  /* Step box */
+  .step-list {
+    background: #fff;
+    border-radius: 14px;
+    padding: 20px 24px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+    margin-bottom: 14px;
+  }
+  .step-list ol {
+    counter-reset: step-counter;
+    list-style: none;
+    padding: 0;
+  }
+  .step-list li {
+    counter-increment: step-counter;
+    padding: 14px 0 14px 46px;
+    position: relative;
+    font-size: 14px;
+    line-height: 1.7;
+    border-bottom: 1px dashed #E8DAC5;
+  }
+  .step-list li:last-child { border-bottom: none; }
+  .step-list li::before {
+    content: counter(step-counter);
+    position: absolute;
+    left: 0; top: 14px;
+    background: #C85A2B;
+    color: #fff;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    font-weight: 900;
+  }
+  .step-list li b { color: #C85A2B; }
+  .step-list li .hint {
+    display: block;
+    background: #FFF0E0;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #8B5A2B;
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+
+  /* Notice boxes */
+  .notice {
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin: 14px 0;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .notice.info {
+    background: #E8F4FF;
+    border-left: 4px solid #4A9FE8;
+    color: #1D4A6A;
+  }
+  .notice.warn {
+    background: #FFF0E0;
+    border-left: 4px solid #E8A53F;
+    color: #8B5A2B;
+  }
+  .notice.danger {
+    background: #FFE8E8;
+    border-left: 4px solid #E84A4A;
+    color: #8B1D1D;
+  }
+  .notice.success {
+    background: #E8F5E8;
+    border-left: 4px solid #4CD964;
+    color: #2D5A2D;
+  }
+  .notice b { font-weight: 900; }
+
+  /* Table */
+  .pretty-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+    margin: 14px 0;
+    font-size: 13px;
+  }
+  .pretty-table th {
+    background: #3D2E1F;
+    color: #FFE8CC;
+    padding: 12px;
+    text-align: left;
+    font-weight: 800;
+  }
+  .pretty-table td {
+    padding: 12px;
+    border-bottom: 1px solid #F0E4D0;
+  }
+  .pretty-table tr:last-child td { border-bottom: none; }
+  .pretty-table tr:nth-child(even) td { background: #FFF8F0; }
+
+  /* Checklist */
+  .checklist {
+    background: #fff;
+    border-radius: 14px;
+    padding: 20px 24px;
+    border: 2px dashed #C85A2B;
+  }
+  .checklist h3 {
+    margin-top: 0 !important;
+  }
+  .checklist ul {
+    list-style: none;
+    padding: 0;
+  }
+  .checklist li {
+    padding: 8px 0 8px 32px;
+    position: relative;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .checklist li::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 10px;
+    width: 22px; height: 22px;
+    border: 3px solid #C85A2B;
+    border-radius: 6px;
+    background: #fff;
+  }
+
+  /* Scenario box */
+  .scenario {
+    background: linear-gradient(135deg, #fff 0%, #FFF8F0 100%);
+    border-radius: 18px;
+    padding: 22px 24px;
+    margin: 16px 0;
+    border: 2px solid #F0E4D0;
+    position: relative;
+  }
+  .scenario .scene-label {
+    display: inline-block;
+    background: #C85A2B;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 900;
+    margin-bottom: 10px;
+  }
+  .scenario h4 {
+    font-size: 16px;
+    font-weight: 900;
+    color: #3D2E1F;
+    margin-bottom: 10px;
+  }
+  .dialog {
+    background: #fff;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 6px 0;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .dialog.staff { border-left: 4px solid #4A9FE8; }
+  .dialog.staff::before { content: '👤 職員: '; font-weight: 800; color: #4A9FE8; }
+  .dialog.user { border-left: 4px solid #FF6B35; }
+  .dialog.user::before { content: '🙂 利用者様: '; font-weight: 800; color: #FF6B35; }
+
+  /* Print */
+  @media print {
+    .topbar { display: none; }
+    .hero { padding: 20px; }
+    .section { page-break-inside: avoid; }
+    .step-list { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="title">📖 運用マニュアル</div>
+  <a class="back" href="index.html">← トップに戻る</a>
+</div>
+
+<div class="hero">
+  <div class="icon">📖</div>
+  <h1>運用マニュアル</h1>
+  <div class="sub">職員向け・実践的な使い方ガイド</div>
+</div>
+
+<div class="container">
+
+  <!-- Table of Contents -->
+  <div class="toc">
+    <h2>📑 目次</h2>
+    <ol>
+      <li><a href="#prep">使う前の準備</a></li>
+      <li><a href="#first">はじめての起動手順</a></li>
+      <li><a href="#daily">日常の使い方（詳細手順）</a></li>
+      <li><a href="#scenarios">支援場面別の活用例</a></li>
+      <li><a href="#menu-update">メニューの変更方法</a></li>
+      <li><a href="#care">利用者様への配慮事項</a></li>
+      <li><a href="#maintenance">メンテナンスと保管</a></li>
+      <li><a href="#checklist">日次チェックリスト</a></li>
+    </ol>
+  </div>
+
+  <!-- Section 1: Preparation -->
+  <div class="section" id="prep">
+    <h2 class="section-title">1. 使う前の準備</h2>
+
+    <h3>🧰 必要なもの</h3>
+    <table class="pretty-table">
+      <tr>
+        <th>項目</th>
+        <th>詳細</th>
+      </tr>
+      <tr>
+        <td><b>タブレット</b>（またはスマホ）</td>
+        <td>iPad推奨（画面が大きい）。Androidタブレットも可</td>
+      </tr>
+      <tr>
+        <td><b>ブラウザ</b></td>
+        <td>Safari（iOS）または Chrome（Android）最新版</td>
+      </tr>
+      <tr>
+        <td><b>マーカー印刷物</b></td>
+        <td>A4用紙 × 3枚（1枚に1マーカー）</td>
+      </tr>
+      <tr>
+        <td><b>インターネット</b></td>
+        <td>Wi-Fi または モバイル回線</td>
+      </tr>
+      <tr>
+        <td><b>テーブル</b></td>
+        <td>マーカーを置く平らな面</td>
+      </tr>
+      <tr>
+        <td><b>明るさ</b></td>
+        <td>室内の通常の明るさ（逆光NG）</td>
+      </tr>
+    </table>
+
+    <div class="notice info">
+      <b>💡 ヒント：</b>マーカーはラミネート加工しておくと、汚れ・水濡れに強く長持ちします。また、画面表示でもOKなので、別のタブレットに表示させる運用も可能です。
+    </div>
+  </div>
+
+  <!-- Section 2: First Launch -->
+  <div class="section" id="first">
+    <h2 class="section-title">2. はじめての起動手順</h2>
+
+    <div class="step-list">
+      <ol>
+        <li>
+          タブレットでSafariまたはChromeを開く
+          <span class="hint">💡 他のブラウザ（Firefox等）では動かない場合があります</span>
+        </li>
+        <li>
+          <b>選択支援メニュー</b>のURLをアドレスバーに入力して開く
+          <span class="hint">URLはブックマークしておくと便利です</span>
+        </li>
+        <li>
+          画面上部の「①WebAR」タブをタップ
+        </li>
+        <li>
+          「🚀 本物のAR を起動する」ボタンをタップ
+        </li>
+        <li>
+          「📷 AR を開始する」ボタンをタップ
+        </li>
+        <li>
+          <b>「カメラを許可しますか？」</b> というポップアップが出たら <b>「許可」</b> を選ぶ
+          <span class="hint">⚠️ 「拒否」を押すと次回から聞かれなくなります。もし拒否してしまった場合は、ブラウザ設定でリセットが必要です</span>
+        </li>
+        <li>
+          カメラ映像が画面に映ります ✅
+        </li>
+        <li>
+          3種類のマーカーをテーブルに並べて、カメラを向ける
+        </li>
+        <li>
+          3つの食べ物が同時に浮かび上がります 🍜🍛🍣
+        </li>
+      </ol>
+    </div>
+
+    <div class="notice warn">
+      <b>⚠️ よくある初回のつまずき：</b><br>
+      ・カメラ許可の確認ポップアップを見逃した → 画面を再読み込み（再起動）<br>
+      ・画面が真っ暗 → ブラウザを閉じて再度起動<br>
+      ・マーカーが認識されない → マーカーを大きく・明るく・平らに置く
+    </div>
+  </div>
+
+  <!-- Section 3: Daily Use -->
+  <div class="section" id="daily">
+    <h2 class="section-title">3. 日常の使い方（詳細手順）</h2>
+
+    <h3>📋 基本フロー</h3>
+    <div class="step-list">
+      <ol>
+        <li>
+          <b>メニューを決める</b><br>
+          今日提供するメニューを3つまで決める
+          <span class="hint">選択支援メニュー → 右上「📋 メニューを選ぶ」で変更できます</span>
+        </li>
+        <li>
+          <b>マーカーをセット</b><br>
+          選んだメニューに対応する3枚のマーカーをテーブルに並べる
+          <span class="hint">マーカー同士は 10cm以上 間隔を空ける</span>
+        </li>
+        <li>
+          <b>AR起動</b><br>
+          タブレットで「WebAR本番」を開き、「AR を開始する」
+        </li>
+        <li>
+          <b>カメラを向ける</b><br>
+          利用者様の前にタブレットを置き、マーカーにカメラを向ける
+          <span class="hint">カメラとマーカーの距離は30〜60cmが最適</span>
+        </li>
+        <li>
+          <b>選択を促す</b><br>
+          「どれが食べたい？」などの声かけ<br>
+          利用者様が指差し・視線・言葉などで意思表示
+        </li>
+        <li>
+          <b>選択を確定</b><br>
+          画面下のパネルで、利用者様が選んだ料理をタップ → <b>「これにする」</b>
+        </li>
+        <li>
+          <b>記録</b><br>
+          支援記録にメニュー決定情報を記入
+        </li>
+      </ol>
+    </div>
+
+    <h3>🔄 カメラの切り替え</h3>
+    <p>AR画面の右上の <b>🔄 カメラ切替ボタン</b> で、インカメラ/アウトカメラを切り替えられます。</p>
+
+    <table class="pretty-table">
+      <tr>
+        <th>シーン</th>
+        <th>おすすめのカメラ</th>
+      </tr>
+      <tr>
+        <td>テーブルのマーカーを撮る</td>
+        <td><b>📸 アウトカメラ</b></td>
+      </tr>
+      <tr>
+        <td>利用者様と向かい合って使う</td>
+        <td><b>🤳 インカメラ</b></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Section 4: Scenarios -->
+  <div class="section" id="scenarios">
+    <h2 class="section-title">4. 支援場面別の活用例</h2>
+
+    <div class="scenario">
+      <span class="scene-label">シーン 1</span>
+      <h4>🍱 外食先でのメニュー選択</h4>
+      <div class="dialog staff">今日はファミレスに来ました。メニューを選びましょう</div>
+      <div class="dialog staff">（タブレットをテーブルに置き、3つのマーカーを配置）</div>
+      <div class="dialog staff">どれが食べたいですか？</div>
+      <div class="dialog user">（🍜ラーメンを指差す）</div>
+      <div class="dialog staff">ラーメンですね。これにしますか？</div>
+      <div class="dialog user">（うなずく）</div>
+      <div class="dialog staff">（画面で「ラーメン」→「これにする」を押す）決定しました！</div>
+    </div>
+
+    <div class="scenario">
+      <span class="scene-label">シーン 2</span>
+      <h4>🏠 施設のおやつ選び</h4>
+      <div class="dialog staff">今日のおやつは3種類あります。選びましょう</div>
+      <div class="dialog staff">（マーカーを並べてタブレットを見せる）</div>
+      <div class="dialog user">（🍣のマーカーを手に取る）</div>
+      <div class="dialog staff">おすしを選んでくれたんですね。</div>
+    </div>
+
+    <div class="scenario">
+      <span class="scene-label">シーン 3</span>
+      <h4>📅 週間献立の希望調査</h4>
+      <div class="dialog staff">来週の献立希望を聞かせてください</div>
+      <div class="dialog staff">（日替わりでマーカーを変えながら、1週間かけて希望を集める）</div>
+      <div class="dialog user">（その日その日で違う料理を選ぶ）</div>
+    </div>
+
+    <div class="notice success">
+      <b>💡 支援のコツ：</b><br>
+      ・急かさず、利用者様のペースで選んでいただく<br>
+      ・迷っている場合は、選択肢を減らしてあげる（3つ→2つ）<br>
+      ・選んだ後に「おいしそうだね」「食べるの楽しみだね」と共感の言葉を添える<br>
+      ・毎回必ず同じ順序で並べると、予測しやすくなる方もいます
+    </div>
+  </div>
+
+  <!-- Section 5: Menu Update -->
+  <div class="section" id="menu-update">
+    <h2 class="section-title">5. メニューの変更方法</h2>
+
+    <h3>📝 メニュー画面での切り替え</h3>
+    <div class="step-list">
+      <ol>
+        <li>「選択支援メニュー」ページを開く</li>
+        <li>右上の <b>「📋 メニューを選ぶ」</b> ボタンをタップ</li>
+        <li>カテゴリを選ぶ（ラーメン/丼もの/カレー/和食/ファミレス/洋食/ファストフード/軽食）</li>
+        <li>そのカテゴリの中から <b>最大3つ</b> の料理をタップして選択</li>
+        <li><b>「決定」</b> ボタンを押す</li>
+        <li>選んだ3つが全4案に反映されます</li>
+      </ol>
+    </div>
+
+    <div class="notice info">
+      <b>💡 保存について：</b>選んだメニューは自動的に保存されるので、次回開いたときも同じメニューが表示されます。
+    </div>
+
+    <h3>🍽️ 現在登録されているメニュー（50種類・14カテゴリ）</h3>
+    <table class="pretty-table">
+      <tr>
+        <th>カテゴリ</th>
+        <th>メニュー</th>
+      </tr>
+      <tr>
+        <td>🍜 ラーメン</td>
+        <td>醤油ラーメン / 味噌ラーメン / 豚骨ラーメン / つけ麺</td>
+      </tr>
+      <tr>
+        <td>🍚 丼もの</td>
+        <td>牛丼 / 親子丼 / カツ丼</td>
+      </tr>
+      <tr>
+        <td>🍛 カレー</td>
+        <td>ビーフカレー / カツカレー</td>
+      </tr>
+      <tr>
+        <td>🍣 和食</td>
+        <td>お寿司 / 天ぷら / うな重 / うどん</td>
+      </tr>
+      <tr>
+        <td>🍳 ファミレス</td>
+        <td>ハンバーグ / オムライス</td>
+      </tr>
+      <tr>
+        <td>🍕 洋食</td>
+        <td>ピザ / パスタ / ステーキ</td>
+      </tr>
+      <tr>
+        <td>🍔 ファストフード</td>
+        <td>ハンバーガー / フライドチキン / ホットドッグ</td>
+      </tr>
+      <tr>
+        <td>🥪 軽食</td>
+        <td>サンドイッチ</td>
+      </tr>
+      <tr style="background:#FFF0E0;">
+        <td>🍰 スイーツ <span style="background:#E8789F; color:#fff; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:4px;">NEW</span></td>
+        <td>プリン / ショートケーキ / アイスクリーム / パフェ / どら焼き</td>
+      </tr>
+      <tr style="background:#FFF0E0;">
+        <td>☕ 飲み物 <span style="background:#E8789F; color:#fff; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:4px;">NEW</span></td>
+        <td>コーヒー / オレンジジュース / お茶 / 牛乳 / ココア</td>
+      </tr>
+      <tr style="background:#FFF0E0;">
+        <td>🍙 おにぎり・パン <span style="background:#E8789F; color:#fff; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:4px;">NEW</span></td>
+        <td>おにぎり / メロンパン / あんパン / クロワッサン / フルーツサンド</td>
+      </tr>
+      <tr style="background:#FFF0E0;">
+        <td>🥟 中華 <span style="background:#E8789F; color:#fff; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:4px;">NEW</span></td>
+        <td>餃子 / チャーハン / 麻婆豆腐 / 春巻き</td>
+      </tr>
+      <tr style="background:#FFF0E0;">
+        <td>🎉 行事食 <span style="background:#E8789F; color:#fff; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:4px;">NEW</span></td>
+        <td>おせち料理 / ちらし寿司 / 恵方巻き / 年越しそば</td>
+      </tr>
+      <tr style="background:#FFF0E0;">
+        <td>🏥 施設の食事 <span style="background:#E8789F; color:#fff; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:4px;">NEW</span></td>
+        <td>朝ごはん / 昼ごはん / フルーツおやつ / ヨーグルト</td>
+      </tr>
+    </table>
+
+    <div class="notice info">
+      <b>💡 施設の食事について：</b>「朝ごはん」「昼ごはん」などは汎用画像が入っています。実際の施設メニューの写真に差し替えると、より分かりやすくなります。差し替え方法は<a href="技術仕様書.html">技術仕様書</a>を参照してください。
+    </div>
+  </div>
+
+  <!-- Section 6: Care -->
+  <div class="section" id="care">
+    <h2 class="section-title">6. 利用者様への配慮事項</h2>
+
+    <h3>🧠 知的障害・自閉症の特性を考慮</h3>
+
+    <div class="notice warn">
+      <b>⚠️ 感覚過敏の方への配慮</b><br>
+      浮き上がる食べ物のアニメーションが苦手な方がいらっしゃる場合は：<br>
+      ・<b>印刷カード方式（案③）</b> に切り替える<br>
+      ・<b>アニメなしの静止画表示</b> で使う（将来実装予定）<br>
+      ・最初は短時間で試して、様子を見る
+    </div>
+
+    <div class="notice info">
+      <b>💡 選択が難しい方への配慮</b><br>
+      ・一度に3つは多い場合、<b>1つだけ見せる</b> ところから始める<br>
+      ・<b>実物の食べ物</b> と併用すると理解が深まる<br>
+      ・選ぶ時間を <b>十分に与える</b><br>
+      ・<b>同じメニューを繰り返し</b> 提示することで慣れていただく
+    </div>
+
+    <div class="notice success">
+      <b>✨ 視覚支援のメリット</b><br>
+      ・言葉だけでなく<b>視覚情報</b>で理解できる<br>
+      ・<b>立体的に見える</b>ことで「食べ物」のイメージが具体化<br>
+      ・<b>選ぶ楽しみ</b>を体験できる（エンパワメント）<br>
+      ・<b>自己決定</b>の機会を増やせる
+    </div>
+  </div>
+
+  <!-- Section 7: Maintenance -->
+  <div class="section" id="maintenance">
+    <h2 class="section-title">7. メンテナンスと保管</h2>
+
+    <h3>🖨️ マーカーの管理</h3>
+    <ul style="padding-left:22px;">
+      <li><b>印刷後はラミネート</b> することを推奨（1年以上使えます）</li>
+      <li><b>折らずに平らに</b> 保管する</li>
+      <li><b>汚れたら交換</b> する（食べ物の汁・手垢など）</li>
+      <li><b>予備</b>を必ず1セット以上用意しておく</li>
+      <li><b>マット紙</b>の方が光を反射しにくく認識しやすい</li>
+    </ul>
+
+    <h3>📱 タブレットの管理</h3>
+    <ul style="padding-left:22px;">
+      <li><b>定期的に再起動</b> する（週1回程度）</li>
+      <li><b>カメラレンズを拭く</b>（マイクロファイバーで）</li>
+      <li><b>バッテリー残量</b> を使用前に確認</li>
+      <li><b>ブラウザの更新</b> を怠らない（月1回チェック）</li>
+      <li><b>使用しないときは充電器に接続</b></li>
+    </ul>
+
+    <h3>🔄 システムの更新</h3>
+    <p>メニュー画像やデザインをより良くしたい場合は、システム担当者または外部業者に依頼してください。詳細は <b>技術仕様書</b> をご確認ください。</p>
+  </div>
+
+  <!-- Section 8: Checklist -->
+  <div class="section" id="checklist">
+    <h2 class="section-title">8. 日次チェックリスト</h2>
+
+    <div class="checklist">
+      <h3>☀️ 朝の準備</h3>
+      <ul>
+        <li>タブレットの充電は十分か</li>
+        <li>インターネット接続は問題ないか</li>
+        <li>今日使うメニューが設定されているか</li>
+        <li>マーカー3種類が揃っているか</li>
+        <li>マーカーは汚れていないか</li>
+      </ul>
+    </div>
+
+    <div class="checklist" style="margin-top:14px;">
+      <h3>🍽️ 使用時</h3>
+      <ul>
+        <li>カメラ映像が正しく映っているか</li>
+        <li>3つのマーカーすべてが認識されているか</li>
+        <li>食べ物画像が正しく表示されているか</li>
+        <li>利用者様が安心して使える環境か</li>
+        <li>選択を急かしていないか</li>
+      </ul>
+    </div>
+
+    <div class="checklist" style="margin-top:14px;">
+      <h3>🌙 使用後</h3>
+      <ul>
+        <li>選択内容を支援記録に記入したか</li>
+        <li>タブレットを充電しているか</li>
+        <li>マーカーを所定の場所に戻したか</li>
+        <li>次回使用時のメニュー更新が必要か確認</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="notice success" style="margin-top:40px; text-align:center; padding:22px;">
+    <b>✨ 運用マニュアルはこれで完了です</b><br>
+    <br>
+    わからないことがあれば、<a href="トラブルシューティング.html" style="color:#2D5A2D; font-weight:900;">トラブル対応ページ</a> を確認してください。
+  </div>
+
+</div>
+
+</body>
+</html>
