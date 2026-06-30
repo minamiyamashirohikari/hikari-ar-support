@@ -4,6 +4,502 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>選択支援メニュー</title>
+<script src="error_guard.js"></script>
+<script src="menu_data.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: "Yu Gothic", "Hiragino Sans", system-ui, sans-serif;
+    color: #2f2a24;
+    background:
+      radial-gradient(circle at 10% 10%, rgba(255,214,138,.32), transparent 28%),
+      linear-gradient(135deg, #f8f1e6 0%, #eef5ee 100%);
+  }
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    padding: 14px clamp(14px, 4vw, 34px);
+    background: rgba(255,252,245,.96);
+    border-bottom: 1px solid #ded3c3;
+    box-shadow: 0 8px 22px rgba(70,50,25,.08);
+    backdrop-filter: blur(12px);
+  }
+  .topbar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+  h1 { margin: 0; font-size: clamp(22px, 4vw, 34px); line-height: 1.25; }
+  .sub { margin-top: 4px; color: #655c51; font-size: 14px; }
+  button, a { -webkit-tap-highlight-color: transparent; }
+  .primary, .secondary, .open-ar {
+    border: 0;
+    border-radius: 14px;
+    min-height: 48px;
+    padding: 12px 18px;
+    font-weight: 900;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .primary { background: #2f6f73; color: #fff; }
+  .secondary { background: #fff; color: #2f2a24; border: 1px solid #ded3c3; }
+  .open-ar { background: #c65f3a; color: #fff; }
+  .count-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    height: 28px;
+    margin-left: 8px;
+    border-radius: 999px;
+    background: #fff;
+    color: #2f6f73;
+  }
+  main {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 14px clamp(12px, 4vw, 34px) 110px;
+  }
+  .tabs {
+    position: sticky;
+    top: 82px;
+    z-index: 35;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 8px 0;
+    margin-bottom: 16px;
+    background: rgba(248,241,230,.94);
+    backdrop-filter: blur(10px);
+  }
+  .tab {
+    border: 1px solid #d8cbbb;
+    background: #fff;
+    border-radius: 14px;
+    padding: 12px 8px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+  .tab.active { background: #2f6f73; color: #fff; border-color: #2f6f73; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .panel-head, .stage {
+    background: rgba(255,255,255,.94);
+    border: 1px solid #ded3c3;
+    border-radius: 22px;
+    box-shadow: 0 12px 28px rgba(70,50,25,.08);
+  }
+  .panel-head { margin-bottom: 14px; padding: 18px; }
+  .panel-head h2 { margin: 0 0 6px; font-size: 24px; }
+  .panel-head p { margin: 0; color: #655c51; line-height: 1.7; }
+  .stage { padding: 18px; }
+  .prompt {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .ar-preview {
+    display: grid;
+    grid-template-columns: minmax(180px, .8fr) 1fr;
+    gap: 18px;
+    align-items: center;
+    padding: 18px;
+    border-radius: 20px;
+    background: linear-gradient(145deg, #fff7ea, #e9f3ef);
+  }
+  .ar-food {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 230px;
+  }
+  .ar-food::before {
+    content: "";
+    position: absolute;
+    width: 70%;
+    height: 22px;
+    bottom: 18px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.18);
+    filter: blur(10px);
+  }
+  .ar-food img {
+    position: relative;
+    width: min(230px, 86%);
+    filter: drop-shadow(0 20px 20px rgba(0,0,0,.2));
+  }
+  .ar-label { font-size: clamp(26px, 5vw, 44px); font-weight: 900; }
+  .ar-label small { display: block; font-size: 16px; color: #655c51; }
+  .mini-marker {
+    display: grid;
+    grid-template-columns: repeat(4, 18px);
+    gap: 3px;
+    width: max-content;
+    margin-top: 12px;
+    padding: 8px;
+    background: #fff;
+    border: 2px solid #1e1e1e;
+  }
+  .mini-marker span { width: 18px; height: 18px; background: #fff; }
+  .mini-marker span.on { background: #111; }
+  .marker-cards, .three-grid, .anim-grid, .print-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .marker-card, .three-card, .anim-card, .print-choice {
+    border: 1px solid #ded3c3;
+    border-radius: 18px;
+    background: #fff;
+    padding: 14px;
+    text-align: center;
+  }
+  .marker-card, .three-card, .anim-card { cursor: pointer; }
+  .marker-card.active, .three-card.selected, .anim-card.selected {
+    outline: 4px solid rgba(47,111,115,.24);
+  }
+  .three-card img, .anim-card img, .print-choice img {
+    width: 150px;
+    height: 150px;
+    object-fit: contain;
+  }
+  .three-card {
+    position: relative;
+    overflow: hidden;
+  }
+  .plate {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 180px;
+  }
+  .shadow {
+    position: absolute;
+    left: 22%;
+    right: 22%;
+    top: 160px;
+    height: 18px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.18);
+    filter: blur(8px);
+  }
+  .gloss {
+    position: absolute;
+    inset: 22px 40px auto auto;
+    width: 46px;
+    height: 20px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.55);
+  }
+  .steam {
+    position: absolute;
+    top: 10px;
+    width: 10px;
+    height: 52px;
+    border-radius: 999px;
+    background: linear-gradient(to top, rgba(255,255,255,0), rgba(255,255,255,.8));
+    animation: steam 2.4s infinite ease-in-out;
+  }
+  .spin-controls { margin-top: 14px; text-align: right; }
+  #printDate { margin: 8px 0 14px; color: #655c51; }
+  .print-choice .number {
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    color: #fff;
+    background: #2f6f73;
+    font-weight: 900;
+  }
+  .picker-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: none;
+  }
+  .picker-modal.open { display: block; }
+  .modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.35);
+  }
+  .picker-inner {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%);
+    width: min(960px, calc(100% - 24px));
+    max-height: min(86vh, 760px);
+    overflow: auto;
+    background: #fffdf8;
+    border-radius: 24px;
+    padding: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+  }
+  .picker-header {
+    position: sticky;
+    top: -16px;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin: -16px -16px 12px;
+    padding: 16px;
+    background: #fffdf8;
+    border-bottom: 1px solid #eadfce;
+  }
+  .picker-header h2 { margin: 0; }
+  .close-btn {
+    border: 0;
+    border-radius: 999px;
+    width: 48px;
+    height: 48px;
+    background: #2f2a24;
+    color: #fff;
+    font-size: 24px;
+  }
+  .selected-bar-slots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .selected-chip {
+    border-radius: 999px;
+    background: #e9f3ef;
+    padding: 8px 12px;
+    font-weight: 900;
+  }
+  .picker-categories {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+  .category-filter {
+    flex: 0 0 auto;
+    border: 1px solid #ded3c3;
+    border-radius: 999px;
+    background: #fff;
+    padding: 9px 12px;
+    font-weight: 900;
+  }
+  .category-filter.active { background: #2f6f73; color: #fff; }
+  .category-filter small { margin-left: 6px; opacity: .75; }
+  .picker-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 10px;
+  }
+  .picker-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #ded3c3;
+    background: #fff;
+    border-radius: 16px;
+    padding: 8px;
+    text-align: left;
+  }
+  .picker-item.selected { outline: 4px solid rgba(47,111,115,.26); }
+  .picker-item img { width: 62px; height: 62px; border-radius: 12px; object-fit: cover; }
+  .picker-item strong, .picker-item small { display: block; }
+  .picker-item small { color: #655c51; }
+  .result-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 92px;
+    z-index: 100;
+    transform: translateX(-50%) translateY(140%);
+    background: #2f6f73;
+    color: #fff;
+    border-radius: 999px;
+    padding: 12px 18px;
+    font-weight: 900;
+    transition: transform .22s ease;
+  }
+  .result-toast.show { transform: translateX(-50%) translateY(0); }
+  .quick-actions {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    z-index: 70;
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 1fr;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid rgba(72,59,44,.15);
+    border-radius: 20px;
+    background: rgba(255,255,255,.96);
+    box-shadow: 0 12px 28px rgba(50,38,24,.18);
+    backdrop-filter: blur(12px);
+  }
+  .quick-actions button,
+  .quick-actions a {
+    border: 0;
+    border-radius: 15px;
+    min-height: 50px;
+    padding: 8px 10px;
+    font-weight: 900;
+    color: #2f2a24;
+    background: #f3eadf;
+    text-decoration: none;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .quick-actions .main-action { background: #c65f3a; color: #fff; }
+  @keyframes steam {
+    0% { opacity: 0; transform: translateY(12px); }
+    35% { opacity: .75; }
+    100% { opacity: 0; transform: translateY(-28px); }
+  }
+  @media (max-width: 720px) {
+    .topbar, .prompt, .ar-preview { display: block; }
+    .primary, .open-ar { width: 100%; margin-top: 10px; }
+    .tabs { grid-template-columns: repeat(2, 1fr); top: 112px; }
+    .quick-actions { grid-template-columns: 1fr 1fr 1fr; }
+  }
+  @media print {
+    header, .tabs, .panel-head, .prompt, .spin-controls, .picker-modal, .result-toast, .quick-actions { display: none !important; }
+    body { background: #fff; }
+    main { padding: 0; }
+    .panel { display: none !important; }
+    #p3 { display: block !important; }
+    .stage { border: 0; box-shadow: none; }
+  }
+</style>
+</head>
+<body id="top">
+<header>
+  <div class="topbar">
+    <div>
+      <h1>選択支援メニュー</h1>
+      <div class="sub">50メニュー・14カテゴリから、1〜3個を選んで比較できます。</div>
+    </div>
+    <button class="primary" id="openPicker" type="button">メニューを選ぶ <span class="count-pill" id="countPill">0/3</span></button>
+  </div>
+</header>
+
+<main>
+  <nav class="tabs" aria-label="表示方式">
+    <button class="tab active" data-panel="p1" type="button">WebAR</button>
+    <button class="tab" data-panel="p2" type="button">3D立体</button>
+    <button class="tab" data-panel="p3" type="button">印刷カード</button>
+    <button class="tab" data-panel="p4" type="button">アニメ</button>
+  </nav>
+
+  <section class="panel active" id="p1">
+    <div class="panel-head">
+      <h2>WebAR</h2>
+      <p>Hiroマーカーを使い、選んだ料理を左右に立体表示します。</p>
+    </div>
+    <div class="stage">
+      <div class="prompt">
+        <strong>どれにしますか？</strong>
+        <a class="open-ar" href="WebAR本番.html">本番ARを起動する</a>
+      </div>
+      <div class="ar-preview">
+        <div class="ar-food"><img id="arFoodImg" alt=""></div>
+        <div>
+          <div class="ar-label" id="arLabel"></div>
+          <div id="arMarker" class="mini-marker"></div>
+        </div>
+      </div>
+      <div class="marker-cards" id="markerCards"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="p2">
+    <div class="panel-head">
+      <h2>3D立体ビューア</h2>
+      <p>くるくる回さず、影・質感・湯気で「そこにある感じ」を見せます。</p>
+    </div>
+    <div class="stage">
+      <div class="prompt"><strong>見比べて選びます</strong></div>
+      <div class="three-grid" id="spinGrid"></div>
+      <div class="spin-controls">
+        <button class="secondary" id="spinConfirm" disabled type="button">これにする</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="p3">
+    <div class="panel-head">
+      <h2>印刷カード</h2>
+      <p>機器を使わない支援用に、選んだメニューだけを印刷できます。</p>
+    </div>
+    <div class="stage">
+      <div class="prompt">
+        <strong>今日の候補</strong>
+        <button class="primary" type="button" onclick="window.print()">印刷する</button>
+      </div>
+      <div id="printDate"></div>
+      <div class="print-grid" id="printGrid"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="p4">
+    <div class="panel-head">
+      <h2>アニメメニュー</h2>
+      <p>動きで注目しやすくしながら、選択肢を絞って提示します。</p>
+    </div>
+    <div class="stage">
+      <div class="prompt"><strong>好きなものをタップ</strong></div>
+      <div class="anim-grid" id="animGrid"></div>
+    </div>
+  </section>
+</main>
+
+<div class="picker-modal" id="pickerModal" aria-hidden="true">
+  <div class="modal-backdrop"></div>
+  <div class="picker-inner" role="dialog" aria-modal="true" aria-labelledby="pickerTitle">
+    <div class="picker-header">
+      <h2 id="pickerTitle">メニューを選ぶ</h2>
+      <button class="close-btn" id="closePicker" type="button" aria-label="閉じる">×</button>
+    </div>
+    <div class="selected-bar-slots" id="selectedBarSlots"></div>
+    <div class="picker-categories" id="pickerCategories"></div>
+    <div class="picker-items" id="pickerItems"></div>
+    <div style="margin-top:12px; display:flex; gap:10px; justify-content:flex-end;">
+      <button class="secondary" id="clearBtn" type="button">最初の3件に戻す</button>
+    </div>
+  </div>
+</div>
+
+<div class="quick-actions" aria-label="固定操作">
+  <button type="button" id="backTop">上へ</button>
+  <button type="button" id="quickPicker" class="main-action">メニューを選ぶ</button>
+  <a href="WebAR本番.html">ARへ</a>
+</div>
+
+<div class="result-toast" id="resultToast" aria-live="polite"></div>
+<script src="app.js"></script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>選択支援メニュー</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
 <script src="error_guard.js"></script>
