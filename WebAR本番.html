@@ -13,6 +13,490 @@
   html, body {
     margin: 0;
     min-height: 100%;
+    scroll-behavior: smooth;
+    font-family: "Yu Gothic", "Hiragino Sans", system-ui, sans-serif;
+    background:
+      radial-gradient(circle at 20% 10%, rgba(255,218,150,.35), transparent 28%),
+      linear-gradient(135deg, #f8f1e6 0%, #edf5f2 100%);
+    color: #2f2a24;
+  }
+  .setup {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 22px clamp(14px, 4vw, 32px) 120px;
+  }
+  h1 { margin: 0 0 8px; font-size: clamp(28px, 5vw, 44px); }
+  p { color: #60574d; line-height: 1.75; }
+  .notice {
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: #fff7e8;
+    border: 1px solid #ead5ac;
+    font-weight: 800;
+  }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px;
+    margin: 18px 0;
+  }
+  .food-card, .marker-card {
+    background: rgba(255,255,255,.95);
+    border: 1px solid #ded3c3;
+    border-radius: 22px;
+    padding: 16px;
+    box-shadow: 0 12px 28px rgba(70,50,25,.08);
+  }
+  .food-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .food-row img { width: 86px; height: 86px; object-fit: contain; border-radius: 16px; background: #fff8ec; }
+  .food-row strong { display: block; font-size: 22px; }
+  .food-row small { color: #6f6559; }
+  .food-card button {
+    width: 100%;
+    border: 0;
+    border-radius: 14px;
+    background: #2f6f73;
+    color: #fff;
+    min-height: 48px;
+    padding: 10px;
+    font-weight: 900;
+  }
+  .marker-card img { width: 100%; max-width: 260px; display: block; margin: 0 auto; }
+  .actions {
+    position: sticky;
+    bottom: 10px;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr 1fr;
+    gap: 8px;
+    margin-top: 18px;
+    padding: 10px;
+    border: 1px solid rgba(72,59,44,.15);
+    border-radius: 20px;
+    background: rgba(255,255,255,.96);
+    box-shadow: 0 12px 28px rgba(50,38,24,.18);
+    backdrop-filter: blur(12px);
+  }
+  .primary, .secondary {
+    border: 0;
+    border-radius: 15px;
+    min-height: 50px;
+    padding: 10px 12px;
+    font-weight: 900;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .primary { background: #c65f3a; color: #fff; }
+  .secondary { background: #fff; color: #2f2a24; border: 1px solid #ded3c3; }
+  .ar-layer {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: #000;
+  }
+  body.ar-active .setup { display: none; }
+  body.ar-active .ar-layer { display: block; }
+  #arScene {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .top-controls {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    z-index: 130;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .top-controls button {
+    pointer-events: auto;
+    border: 0;
+    border-radius: 15px;
+    background: rgba(255,255,255,.94);
+    min-height: 46px;
+    font-weight: 900;
+  }
+  .status {
+    position: fixed;
+    top: 66px;
+    left: 10px;
+    right: 10px;
+    z-index: 120;
+    text-align: center;
+    color: #fff;
+    text-shadow: 0 2px 8px #000;
+    font-weight: 900;
+    pointer-events: none;
+  }
+  .hud {
+    position: fixed;
+    z-index: 120;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 8px;
+    align-items: end;
+    pointer-events: none;
+  }
+  .hud-card {
+    pointer-events: auto;
+    background: rgba(255,255,255,.94);
+    border-radius: 15px;
+    padding: 10px;
+    min-width: 0;
+  }
+  .hud-card strong { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hud-card button, .decide {
+    width: 100%;
+    margin-top: 8px;
+    border: 0;
+    border-radius: 13px;
+    min-height: 42px;
+    font-weight: 900;
+  }
+  .hud-card button { background: #2f6f73; color: #fff; }
+  .decide {
+    pointer-events: auto;
+    background: #c65f3a;
+    color: #fff;
+    padding: 14px 18px;
+  }
+  .picker {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 160;
+    background: rgba(0,0,0,.42);
+    padding: 16px;
+  }
+  .picker.show { display: block; }
+  .picker-inner {
+    width: min(900px, 100%);
+    max-height: 86vh;
+    overflow: auto;
+    margin: 8vh auto 0;
+    background: #fffdf8;
+    border-radius: 24px;
+    padding: 16px;
+  }
+  .picker-header {
+    position: sticky;
+    top: -16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin: -16px -16px 12px;
+    padding: 16px;
+    background: #fffdf8;
+    border-bottom: 1px solid #eadfce;
+  }
+  .picker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 10px;
+  }
+  .picker-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #ded3c3;
+    background: #fff;
+    border-radius: 16px;
+    padding: 8px;
+    text-align: left;
+  }
+  .picker-item img { width: 58px; height: 58px; border-radius: 12px; object-fit: contain; }
+  .picker-item strong, .picker-item small { display: block; }
+  @media (max-width: 720px) {
+    .actions { grid-template-columns: 1fr; }
+    .hud { grid-template-columns: 1fr; }
+    .decide { order: 3; }
+  }
+</style>
+</head>
+<body id="top">
+<main class="setup">
+  <h1>WebARでメニューを選ぶ</h1>
+  <p>Hiroマーカーを2枚並べると、左と右に別々の料理が浮かびます。まず下の2品を確認してからARを起動してください。</p>
+  <div class="notice">実機ではカメラ許可を「許可」にしてください。うまく映らない時は、明るい場所でマーカーを少し離して置くと安定します。</div>
+
+  <section class="cards" aria-label="表示する料理">
+    <article class="food-card">
+      <div class="food-row">
+        <img id="leftPreviewImg" alt="">
+        <div><strong id="leftPreviewName"></strong><small>左のマーカー</small></div>
+      </div>
+      <button type="button" data-side="left" class="change-food">左を変更</button>
+    </article>
+    <article class="food-card">
+      <div class="food-row">
+        <img id="rightPreviewImg" alt="">
+        <div><strong id="rightPreviewName"></strong><small>右のマーカー</small></div>
+      </div>
+      <button type="button" data-side="right" class="change-food">右を変更</button>
+    </article>
+    <article class="marker-card">
+      <h2>Hiroマーカー</h2>
+      <p>同じHiroマーカーを2枚印刷し、少し離して置いてください。</p>
+      <img src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/images/hiro.png" alt="Hiroマーカー">
+    </article>
+  </section>
+
+  <div class="actions" aria-label="WebAR操作">
+    <button class="primary" id="startAR" type="button">ARを起動</button>
+    <button class="secondary" id="cameraToggle" type="button">カメラ: アウト</button>
+    <button class="secondary" id="backTop" type="button">上へ戻る</button>
+    <a class="secondary" href="選択支援メニュー.html">選択画面へ</a>
+  </div>
+</main>
+
+<div class="ar-layer">
+  <a-scene
+    id="arScene"
+    embedded
+    renderer="alpha: true; antialias: true; precision: mediump"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: true"
+    arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false; detectionMode: mono; maxDetectionRate: 30;">
+  </a-scene>
+  <div class="top-controls">
+    <button id="closeAR" type="button">閉じる</button>
+    <button id="cameraToggleAR" type="button">カメラ切替</button>
+  </div>
+  <div class="status" id="statusText">マーカーをカメラに映してください</div>
+  <div class="hud">
+    <div class="hud-card"><strong id="leftHudName"></strong><button type="button" data-side="left" class="change-food">左を変更</button></div>
+    <button class="decide" id="decideBtn" type="button">これにする</button>
+    <div class="hud-card"><strong id="rightHudName"></strong><button type="button" data-side="right" class="change-food">右を変更</button></div>
+  </div>
+</div>
+
+<div class="picker" id="picker">
+  <div class="picker-inner">
+    <div class="picker-header">
+      <h2 id="pickerTitle" style="margin:0;">料理を選ぶ</h2>
+      <button class="secondary" id="closePicker" type="button">閉じる</button>
+    </div>
+    <div class="picker-grid" id="pickerGrid"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const items = window.MENU_ITEMS || [];
+  const STORAGE_KEY = 'senshakuSelectedIds';
+  const CAMERA_KEY = 'senshakuCameraMode';
+  const hotWords = ['あたたかい', 'カレー', 'めん', 'スープ', 'みそ', 'こってり'];
+  let targetSide = 'left';
+  let markerVisible = { left: false, right: false };
+
+  function savedIds() {
+    try {
+      const ids = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      return Array.isArray(ids) ? ids : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function indexById(id, fallback) {
+    const index = items.findIndex((item) => item.id === id);
+    return index >= 0 ? index : fallback;
+  }
+
+  function loadPair() {
+    const ids = savedIds();
+    return {
+      left: indexById(ids[0], 0),
+      right: indexById(ids[1], Math.min(1, items.length - 1))
+    };
+  }
+
+  let current = loadPair();
+
+  function savePair() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([items[current.left]?.id, items[current.right]?.id].filter(Boolean)));
+    } catch (_) {}
+  }
+
+  function colorOf(item) {
+    const category = (window.MENU_CATEGORIES || []).find((cat) => cat.id === item.category);
+    return category?.color || '#d28b4a';
+  }
+
+  function hot(item) {
+    return item.tags.some((tag) => hotWords.some((word) => tag.includes(word)));
+  }
+
+  function foodEntity(item, side) {
+    const color = colorOf(item);
+    const x = side === 'left' ? '-.45' : '.45';
+    const steam = hot(item)
+      ? `<a-entity position="0 .55 0">
+          <a-cylinder radius=".018" height=".52" color="#fff" material="transparent:true; opacity:.42" animation="property: position; to: 0 .86 0; dur: 2200; loop: true; dir: alternate; easing: easeInOutSine"></a-cylinder>
+          <a-cylinder radius=".012" height=".38" position=".16 .08 .02" color="#fff" material="transparent:true; opacity:.30" animation="property: position; to: .16 .58 .02; dur: 2600; loop: true; dir: alternate; easing: easeInOutSine"></a-cylinder>
+        </a-entity>`
+      : '';
+    return `
+      <a-entity position="${x} 0 0" rotation="-12 ${side === 'left' ? '12' : '-12'} 0">
+        <a-circle radius="1.48" rotation="-90 0 0" position="0 .001 0" material="color:#000; opacity:.20; transparent:true; shader:flat"></a-circle>
+        <a-circle radius="1.18" rotation="-90 0 0" position="0 .003 0" material="color:#000; opacity:.07; transparent:true; shader:flat"></a-circle>
+        <a-entity position="0 .18 0" animation__float="property: position; to: 0 .26 0; dir: alternate; dur: 2600; loop: true; easing: easeInOutSine">
+          <a-cylinder radius="1.02" height=".16" material="color:#F7ECDD; roughness:.74; metalness:.02"></a-cylinder>
+          <a-cylinder radius=".84" height=".32" position="0 .10 0" material="src:#tex-${item.id}; roughness:.82; metalness:.01"></a-cylinder>
+          <a-circle radius=".86" rotation="-90 0 0" position="0 .25 0" material="src:#tex-${item.id}; side:double; roughness:.76; metalness:.01"></a-circle>
+          <a-torus radius=".92" radius-tubular=".034" color="#fff" position="0 .03 0" rotation="-90 0 0" material="roughness:.26; metalness:.12; opacity:.88; transparent:true"></a-torus>
+          <a-ring radius-inner=".95" radius-outer="1.32" color="${color}" rotation="-90 0 0" position="0 .02 0" material="opacity:.18; transparent:true; side:double; shader:flat; emissive:${color}; emissiveIntensity:.18"></a-ring>
+          ${steam}
+        </a-entity>
+        <a-text value="${item.name}" align="center" width="3.4" color="#fff" position="0 1.35 0" rotation="-18 0 0"></a-text>
+      </a-entity>`;
+  }
+
+  function renderScene() {
+    const scene = document.getElementById('arScene');
+    scene.innerHTML = `
+      <a-assets>
+        ${items.map((item) => `<img id="tex-${item.id}" src="${item.image}" crossorigin="anonymous">`).join('')}
+      </a-assets>
+      <a-marker preset="hiro" id="marker-left" emitevents="true">${foodEntity(items[current.left], 'left')}</a-marker>
+      <a-marker preset="hiro" id="marker-right" emitevents="true">${foodEntity(items[current.right], 'right')}</a-marker>
+      <a-entity light="type: ambient; intensity: .72"></a-entity>
+      <a-entity light="type: directional; intensity: .82" position="1 2 1"></a-entity>
+      <a-entity camera></a-entity>
+    `;
+    window.setTimeout(bindMarkerEvents, 200);
+    refreshLabels();
+  }
+
+  function bindMarkerEvents() {
+    [['marker-left', 'left'], ['marker-right', 'right']].forEach(([id, side]) => {
+      const marker = document.getElementById(id);
+      if (!marker) return;
+      marker.addEventListener('markerFound', () => { markerVisible[side] = true; updateStatus(); });
+      marker.addEventListener('markerLost', () => { markerVisible[side] = false; updateStatus(); });
+    });
+  }
+
+  function updateStatus() {
+    const status = document.getElementById('statusText');
+    if (!status) return;
+    if (markerVisible.left && markerVisible.right) status.textContent = '左右の料理が表示されています';
+    else if (markerVisible.left || markerVisible.right) status.textContent = 'もう1枚のマーカーも映してください';
+    else status.textContent = 'マーカーをカメラに映してください';
+  }
+
+  function refreshLabels() {
+    const left = items[current.left];
+    const right = items[current.right];
+    const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+    const img = (id, item) => { const el = document.getElementById(id); if (el) { el.src = item.image; el.alt = item.name; } };
+    set('leftPreviewName', left.name);
+    set('rightPreviewName', right.name);
+    set('leftHudName', left.name);
+    set('rightHudName', right.name);
+    img('leftPreviewImg', left);
+    img('rightPreviewImg', right);
+  }
+
+  function openPicker(side) {
+    targetSide = side;
+    document.getElementById('pickerTitle').textContent = `${side === 'left' ? '左' : '右'}の料理を選ぶ`;
+    document.getElementById('pickerGrid').innerHTML = items.map((item, index) => `
+      <button class="picker-item" type="button" data-index="${index}">
+        <img src="${item.image}" alt="${item.name}">
+        <span><strong>${item.name}</strong><small>${item.reading}</small></span>
+      </button>
+    `).join('');
+    document.querySelectorAll('.picker-item').forEach((button) => {
+      button.addEventListener('click', () => {
+        current[targetSide] = Number(button.dataset.index);
+        savePair();
+        refreshLabels();
+        if (document.body.classList.contains('ar-active')) renderScene();
+        closePicker();
+      });
+    });
+    document.getElementById('picker').classList.add('show');
+  }
+
+  function closePicker() {
+    document.getElementById('picker').classList.remove('show');
+  }
+
+  function toggleCamera() {
+    const currentMode = localStorage.getItem(CAMERA_KEY) || 'environment';
+    const next = currentMode === 'environment' ? 'user' : 'environment';
+    localStorage.setItem(CAMERA_KEY, next);
+    document.getElementById('cameraToggle').textContent = `カメラ: ${next === 'environment' ? 'アウト' : 'イン'}`;
+    alert('カメラ設定を切り替えました。反映されない場合はページを再読み込みしてください。');
+  }
+
+  document.querySelectorAll('.change-food').forEach((button) => {
+    button.addEventListener('click', () => openPicker(button.dataset.side));
+  });
+  document.getElementById('closePicker').addEventListener('click', closePicker);
+  document.getElementById('picker').addEventListener('click', (event) => {
+    if (event.target.id === 'picker') closePicker();
+  });
+  document.getElementById('cameraToggle').addEventListener('click', toggleCamera);
+  document.getElementById('cameraToggleAR').addEventListener('click', toggleCamera);
+  document.getElementById('backTop').addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+  document.getElementById('startAR').addEventListener('click', () => {
+    document.body.classList.add('ar-active');
+    renderScene();
+  });
+  document.getElementById('closeAR').addEventListener('click', () => {
+    document.body.classList.remove('ar-active');
+    document.getElementById('arScene').innerHTML = '';
+    markerVisible = { left: false, right: false };
+    updateStatus();
+  });
+  document.getElementById('decideBtn').addEventListener('click', () => {
+    const left = items[current.left]?.name || '';
+    const right = items[current.right]?.name || '';
+    alert(`候補を確認しました。\n左: ${left}\n右: ${right}`);
+  });
+
+  refreshLabels();
+})();
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>WebAR本番</title>
+<script src="error_guard.js"></script>
+<script src="menu_data.js"></script>
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    min-height: 100%;
     font-family: system-ui, "Yu Gothic", sans-serif;
     background: #f7f4ee;
     color: #2f2a24;
