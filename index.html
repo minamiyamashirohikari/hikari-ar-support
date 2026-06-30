@@ -96,6 +96,121 @@
     <h1>選ぶ楽しみを、見てわかる形にする。</h1>
     <p class="lead">障害者支援施設での食事選択を支えるための静的Webアプリです。50メニュー・14カテゴリから1〜3個を選び、WebAR、3D立体、印刷カード、アニメメニューで提示できます。</p>
     <div class="actions">
+      <a class="primary" href="select.html">選択支援メニューを開く</a>
+      <a class="secondary" href="webar.html">WebARを直接開く</a>
+      <a class="secondary" href="マーカー印刷.html">マーカー印刷</a>
+    </div>
+  </section>
+
+  <section class="summary" aria-label="機能概要">
+    <div class="item"><strong>選択</strong><span>50メニューから1〜3個を選び、状態を端末に保存します。</span></div>
+    <div class="item"><strong>提示</strong><span>WebAR、3D立体、印刷カード、アニメメニューに切り替えられます。</span></div>
+    <div class="item"><strong>運用</strong><span>HTML、CSS、JavaScriptだけで動く完全静的サイトです。</span></div>
+    <div class="item"><strong>AR</strong><span>A-FrameとAR.jsを使い、Hiroマーカーで料理を立体表示します。</span></div>
+  </section>
+
+  <footer>v4 点検版: 文字化け除去と主要画面の動作確認を優先した版です。</footer>
+</main>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>障害者支援施設の意思決定支援用WebARツール</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<script src="error_guard.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Zen Maru Gothic', sans-serif;
+    background: #f7f4ee;
+    color: #2f2a24;
+  }
+  main {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: clamp(22px, 5vw, 56px);
+  }
+  .hero {
+    min-height: 72vh;
+    display: grid;
+    align-content: center;
+    gap: 22px;
+  }
+  .eyebrow {
+    display: inline-flex;
+    width: fit-content;
+    border: 1px solid #cfc7bb;
+    border-radius: 999px;
+    padding: 7px 12px;
+    color: #5f554b;
+    font-weight: 700;
+    background: #fff;
+  }
+  h1 {
+    margin: 0;
+    font-size: clamp(32px, 7vw, 68px);
+    line-height: 1.12;
+    max-width: 900px;
+  }
+  .lead {
+    margin: 0;
+    max-width: 780px;
+    color: #5f554b;
+    font-size: clamp(16px, 2.5vw, 21px);
+    line-height: 1.8;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  a {
+    color: inherit;
+  }
+  .primary, .secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-weight: 900;
+    text-decoration: none;
+  }
+  .primary { background: #2f6f73; color: #fff; }
+  .secondary { background: #fff; border: 1px solid #d8d0c4; }
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 12px;
+  }
+  .item {
+    background: #fff;
+    border: 1px solid #ded8cc;
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .item strong { display: block; margin-bottom: 6px; }
+  .item span { color: #655c51; }
+  footer {
+    padding-top: 26px;
+    color: #71675c;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <span class="eyebrow">意思決定支援 / 食事選択 / WebAR</span>
+    <h1>選ぶ楽しみを、見てわかる形にする。</h1>
+    <p class="lead">障害者支援施設での食事選択を支えるための静的Webアプリです。50メニュー・14カテゴリから1〜3個を選び、WebAR、3D立体、印刷カード、アニメメニューで提示できます。</p>
+    <div class="actions">
       <a class="primary" href="選択支援メニュー.html">選択支援メニューを開く</a>
       <a class="secondary" href="WebAR本番.html">WebARを直接開く</a>
       <a class="secondary" href="マーカー印刷.html">マーカー印刷</a>
