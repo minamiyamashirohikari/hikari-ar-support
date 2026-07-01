@@ -303,6 +303,18 @@
   const STORAGE_KEY = 'senshakuSelectedIds';
   const CAMERA_KEY = 'senshakuCameraMode';
   const hotWords = ['あたたかい', 'カレー', 'めん', 'スープ', 'みそ', 'こってり'];
+  const REALISTIC_MODEL_IDS = new Set([
+    'shoyu_ramen',
+    'miso_ramen',
+    'gyudon',
+    'katsudon',
+    'beef_curry',
+    'hamburg_steak',
+    'omurice',
+    'fried_chicken_plate',
+    'udon',
+    'spaghetti'
+  ]);
   let targetSide = 'left';
   let markerVisible = { left: false, right: false };
   let arRunning = false;
@@ -360,9 +372,145 @@
     return item.tags.some((tag) => hotWords.some((word) => tag.includes(word)));
   }
 
+  function material(color, extra = '') {
+    return `material="color:${color}; roughness:.72; metalness:.02; ${extra}"`;
+  }
+
+  function plate() {
+    return `
+      <a-cylinder radius="1.08" height=".08" position="0 .04 0" ${material('#fff7ea')}></a-cylinder>
+      <a-torus radius=".93" radius-tubular=".035" position="0 .10 0" rotation="-90 0 0" ${material('#ffffff', 'opacity:.9; transparent:true')}></a-torus>`;
+  }
+
+  function bowl(color = '#f8f2e6', inner = '#f4dfb7') {
+    return `
+      <a-cylinder radius=".92" height=".42" position="0 .18 0" ${material(color)}></a-cylinder>
+      <a-cylinder radius=".82" height=".08" position="0 .43 0" ${material(inner)}></a-cylinder>
+      <a-torus radius=".84" radius-tubular=".045" position="0 .49 0" rotation="-90 0 0" ${material('#ffffff', 'opacity:.94; transparent:true')}></a-torus>`;
+  }
+
+  function noodleLines(color = '#f2d27a') {
+    return `
+      <a-torus radius=".36" radius-tubular=".018" position="-.08 .55 .03" rotation="90 0 10" ${material(color)}></a-torus>
+      <a-torus radius=".28" radius-tubular=".016" position=".18 .57 -.02" rotation="90 0 -18" ${material(color)}></a-torus>
+      <a-torus radius=".22" radius-tubular=".014" position="-.24 .58 -.08" rotation="90 0 31" ${material(color)}></a-torus>`;
+  }
+
+  function ramenModel(kind) {
+    const soup = kind === 'miso_ramen' ? '#b66a2d' : '#6d3f22';
+    return `
+      ${bowl('#f7efe0', soup)}
+      ${noodleLines('#f4cf73')}
+      <a-cylinder radius=".18" height=".035" position="-.34 .61 .18" rotation="0 24 0" ${material('#c48a55')}></a-cylinder>
+      <a-sphere radius=".16" scale="1 .45 1" position=".32 .62 .16" ${material('#f5f0cf')}></a-sphere>
+      <a-sphere radius=".07" scale="1 .35 1" position=".32 .67 .16" ${material('#f0b330')}></a-sphere>
+      <a-cylinder radius=".11" height=".025" position=".06 .64 -.28" rotation="0 0 0" ${material('#f8f8f8')}></a-cylinder>
+      <a-torus radius=".055" radius-tubular=".012" position=".06 .665 -.28" rotation="-90 0 0" ${material('#e75a73')}></a-torus>
+      <a-cylinder radius=".035" height=".42" position=".64 .72 -.22" rotation="18 0 -18" ${material('#5d3b22')}></a-cylinder>
+      <a-cylinder radius=".035" height=".42" position=".72 .70 -.18" rotation="18 0 -18" ${material('#5d3b22')}></a-cylinder>`;
+  }
+
+  function udonModel() {
+    return `
+      ${bowl('#f5efe4', '#c58a4f')}
+      ${noodleLines('#f8f1d7')}
+      <a-cylinder radius=".23" height=".04" position="-.24 .61 .12" rotation="0 18 0" ${material('#d69b35')}></a-cylinder>
+      <a-sphere radius=".09" scale="1 .35 1" position=".28 .62 -.16" ${material('#6bb25d')}></a-sphere>
+      <a-cylinder radius=".035" height=".42" position=".65 .72 -.20" rotation="18 0 -18" ${material('#5d3b22')}></a-cylinder>`;
+  }
+
+  function curryModel(katsu = false) {
+    return `
+      ${plate()}
+      <a-sphere radius=".36" scale="1.25 .34 .85" position="-.34 .31 .06" ${material('#f7f0da')}></a-sphere>
+      <a-sphere radius=".42" scale="1.35 .22 .9" position=".28 .32 -.03" ${material('#8f4f22')}></a-sphere>
+      <a-sphere radius=".08" scale="1 .55 1" position=".16 .43 .18" ${material('#d28f3a')}></a-sphere>
+      <a-sphere radius=".075" scale="1 .55 1" position=".42 .42 -.18" ${material('#be6a2c')}></a-sphere>
+      ${katsu ? `
+        <a-box width=".24" height=".08" depth=".42" position="-.06 .53 -.22" rotation="0 18 0" ${material('#c98831')}></a-box>
+        <a-box width=".24" height=".08" depth=".42" position=".18 .54 -.24" rotation="0 18 0" ${material('#c98831')}></a-box>
+        <a-box width=".24" height=".08" depth=".42" position=".42 .53 -.20" rotation="0 18 0" ${material('#c98831')}></a-box>` : ''}`;
+  }
+
+  function donModel(type) {
+    const topping = type === 'katsudon' ? '#c98732' : '#9b5a30';
+    return `
+      ${bowl('#f8f0df', '#f5edd9')}
+      <a-sphere radius=".52" scale="1 .24 .75" position="0 .52 0" ${material('#f9f1dc')}></a-sphere>
+      <a-sphere radius=".34" scale="1.45 .20 .55" position=".02 .66 .04" ${material(topping)}></a-sphere>
+      <a-sphere radius=".09" scale="1 .38 1" position="-.32 .74 .02" ${material('#f3c64e')}></a-sphere>
+      <a-sphere radius=".08" scale="1 .35 1" position=".28 .73 -.14" ${material('#6ea956')}></a-sphere>
+      ${type === 'katsudon' ? `
+        <a-box width=".18" height=".07" depth=".42" position="-.18 .79 .02" rotation="0 -8 0" ${material('#b96f29')}></a-box>
+        <a-box width=".18" height=".07" depth=".42" position=".02 .80 .04" rotation="0 -8 0" ${material('#b96f29')}></a-box>
+        <a-box width=".18" height=".07" depth=".42" position=".22 .79 .02" rotation="0 -8 0" ${material('#b96f29')}></a-box>` : ''}`;
+  }
+
+  function hamburgModel() {
+    return `
+      ${plate()}
+      <a-cylinder radius=".42" height=".20" position="-.08 .31 0" rotation="0 0 0" ${material('#5b3325')}></a-cylinder>
+      <a-sphere radius=".32" scale="1.25 .22 .8" position="-.08 .46 0" ${material('#7a321f')}></a-sphere>
+      <a-sphere radius=".09" position=".48 .32 .22" ${material('#df6c45')}></a-sphere>
+      <a-sphere radius=".08" position=".54 .31 -.02" ${material('#67a354')}></a-sphere>
+      <a-sphere radius=".08" position=".43 .31 -.26" ${material('#f0d657')}></a-sphere>
+      <a-sphere radius=".20" scale="1.25 .30 .9" position="-.54 .32 -.12" ${material('#f8f0da')}></a-sphere>`;
+  }
+
+  function omuriceModel() {
+    return `
+      ${plate()}
+      <a-sphere radius=".48" scale="1.55 .38 .86" position="0 .36 0" ${material('#f0c84e')}></a-sphere>
+      <a-cylinder radius=".025" height=".74" position="0 .57 .03" rotation="80 0 82" ${material('#c64528')}></a-cylinder>
+      <a-sphere radius=".08" position=".52 .32 .22" ${material('#68a64e')}></a-sphere>
+      <a-sphere radius=".075" position="-.54 .32 -.20" ${material('#df6c45')}></a-sphere>`;
+  }
+
+  function friedChickenModel() {
+    return `
+      ${plate()}
+      <a-sphere radius=".18" scale="1.25 .9 .95" position="-.28 .35 .06" ${material('#b96c29')}></a-sphere>
+      <a-sphere radius=".20" scale="1.15 .9 .95" position=".00 .37 -.08" ${material('#c98132')}></a-sphere>
+      <a-sphere radius=".17" scale="1.2 .85 .95" position=".28 .34 .08" ${material('#b96c29')}></a-sphere>
+      <a-sphere radius=".07" position=".48 .32 -.18" ${material('#6ea956')}></a-sphere>
+      <a-sphere radius=".10" scale="1 .35 1" position="-.50 .33 -.20" ${material('#f2e8c7')}></a-sphere>`;
+  }
+
+  function spaghettiModel() {
+    return `
+      ${plate()}
+      <a-torus radius=".38" radius-tubular=".08" position="0 .33 0" rotation="-90 0 0" ${material('#f1cc78')}></a-torus>
+      <a-torus radius=".26" radius-tubular=".055" position=".10 .41 .04" rotation="-90 0 18" ${material('#f4d486')}></a-torus>
+      <a-sphere radius=".28" scale="1.25 .22 .85" position=".04 .50 0" ${material('#b8412d')}></a-sphere>
+      <a-sphere radius=".04" position="-.22 .62 .10" ${material('#4d9a55')}></a-sphere>
+      <a-sphere radius=".04" position=".18 .61 -.14" ${material('#4d9a55')}></a-sphere>`;
+  }
+
+  function realisticFoodModel(item) {
+    if (item.id === 'shoyu_ramen' || item.id === 'miso_ramen') return ramenModel(item.id);
+    if (item.id === 'udon') return udonModel();
+    if (item.id === 'beef_curry') return curryModel(false);
+    if (item.id === 'gyudon' || item.id === 'katsudon') return donModel(item.id);
+    if (item.id === 'hamburg_steak') return hamburgModel();
+    if (item.id === 'omurice') return omuriceModel();
+    if (item.id === 'fried_chicken_plate') return friedChickenModel();
+    if (item.id === 'spaghetti') return spaghettiModel();
+    return '';
+  }
+
+  function fallbackFoodModel(item, color) {
+    return `
+      <a-cylinder radius="1.02" height=".16" material="color:#F7ECDD; roughness:.74; metalness:.02"></a-cylinder>
+      <a-cylinder radius=".84" height=".32" position="0 .10 0" material="src:#tex-${item.id}; roughness:.82; metalness:.01"></a-cylinder>
+      <a-circle radius=".86" rotation="-90 0 0" position="0 .25 0" material="src:#tex-${item.id}; side:double; roughness:.76; metalness:.01"></a-circle>
+      <a-torus radius=".92" radius-tubular=".034" color="#fff" position="0 .03 0" rotation="-90 0 0" material="roughness:.26; metalness:.12; opacity:.88; transparent:true"></a-torus>
+      <a-ring radius-inner=".95" radius-outer="1.32" color="${color}" rotation="-90 0 0" position="0 .02 0" material="opacity:.18; transparent:true; side:double; shader:flat; emissive:${color}; emissiveIntensity:.18"></a-ring>`;
+  }
+
   function foodEntity(item, side) {
     const color = colorOf(item);
     const x = side === 'left' ? '-.45' : '.45';
+    const isRealistic = REALISTIC_MODEL_IDS.has(item.id);
     const steam = hot(item)
       ? `<a-entity position="0 .55 0">
           <a-cylinder radius=".018" height=".52" color="#fff" material="transparent:true; opacity:.42" animation="property: position; to: 0 .86 0; dur: 2200; loop: true; dir: alternate; easing: easeInOutSine"></a-cylinder>
@@ -374,11 +522,7 @@
         <a-circle radius="1.48" rotation="-90 0 0" position="0 .001 0" material="color:#000; opacity:.20; transparent:true; shader:flat"></a-circle>
         <a-circle radius="1.18" rotation="-90 0 0" position="0 .003 0" material="color:#000; opacity:.07; transparent:true; shader:flat"></a-circle>
         <a-entity position="0 .18 0" animation__float="property: position; to: 0 .26 0; dir: alternate; dur: 2600; loop: true; easing: easeInOutSine">
-          <a-cylinder radius="1.02" height=".16" material="color:#F7ECDD; roughness:.74; metalness:.02"></a-cylinder>
-          <a-cylinder radius=".84" height=".32" position="0 .10 0" material="src:#tex-${item.id}; roughness:.82; metalness:.01"></a-cylinder>
-          <a-circle radius=".86" rotation="-90 0 0" position="0 .25 0" material="src:#tex-${item.id}; side:double; roughness:.76; metalness:.01"></a-circle>
-          <a-torus radius=".92" radius-tubular=".034" color="#fff" position="0 .03 0" rotation="-90 0 0" material="roughness:.26; metalness:.12; opacity:.88; transparent:true"></a-torus>
-          <a-ring radius-inner=".95" radius-outer="1.32" color="${color}" rotation="-90 0 0" position="0 .02 0" material="opacity:.18; transparent:true; side:double; shader:flat; emissive:${color}; emissiveIntensity:.18"></a-ring>
+          ${isRealistic ? realisticFoodModel(item) : fallbackFoodModel(item, color)}
           ${steam}
         </a-entity>
         <a-text value="${item.name}" align="center" width="3.4" color="#fff" position="0 1.35 0" rotation="-18 0 0"></a-text>
