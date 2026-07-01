@@ -250,12 +250,14 @@
     renderPickerItems(categoryId);
   }
 
-  function setActivePanel(panelId) {
+  function setActivePanel(panelId, options = {}) {
     $$('.tab').forEach((tab) => tab.classList.toggle('active', tab.dataset.panel === panelId));
     $$('.panel').forEach((panel) => panel.classList.toggle('active', panel.id === panelId));
     try { localStorage.setItem(PANEL_KEY, panelId); } catch (_) {}
-    const tabs = $('.tabs');
-    if (tabs) tabs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (options.scroll) {
+      const tabs = $('.tabs');
+      if (tabs) tabs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
 
   function bindEvents() {
@@ -269,7 +271,7 @@
       renderAll();
       renderPickerItems();
     });
-    $$('.tab').forEach((tab) => tab.addEventListener('click', () => setActivePanel(tab.dataset.panel)));
+    $$('.tab').forEach((tab) => tab.addEventListener('click', () => setActivePanel(tab.dataset.panel, { scroll: false })));
     $('#spinConfirm')?.addEventListener('click', () => closePicker());
     $('.modal-backdrop')?.addEventListener('click', closePicker);
     document.addEventListener('keydown', (event) => {
@@ -281,6 +283,6 @@
     bindEvents();
     renderAll();
     const savedPanel = safeRead(PANEL_KEY, 'p1');
-    setActivePanel(typeof savedPanel === 'string' ? savedPanel : 'p1');
+    setActivePanel(typeof savedPanel === 'string' ? savedPanel : 'p1', { scroll: false });
   });
 })();
