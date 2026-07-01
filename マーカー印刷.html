@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hiroマーカー印刷</title>
+<title>ARマーカー印刷</title>
 <style>
   body { margin: 0; font-family: system-ui, "Yu Gothic", sans-serif; background: #f7f4ee; color: #2f2a24; }
   main { max-width: 960px; margin: 0 auto; padding: 24px; }
@@ -27,20 +27,20 @@
 </head>
 <body>
 <main>
-  <h1>Hiroマーカー印刷</h1>
-  <p class="note">WebAR本番ではHiroマーカーを使用します。同じマーカーを2枚印刷し、机の上で少し離して置いてください。</p>
+  <h1>ARマーカー印刷</h1>
+  <p class="note">WebAR本番では、左にHiroマーカー、右にKanjiマーカーを使用します。同じマーカー2枚では左右を別々に認識しにくいため、必ず2種類を印刷してください。</p>
   <div class="actions">
     <button onclick="window.print()">印刷する</button>
     <a href="選択支援メニュー.html">選択画面に戻る</a>
   </div>
   <section class="sheet">
     <article class="marker">
-      <strong>左のマーカー</strong>
+      <strong>左: Hiroマーカー</strong>
       <img src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/images/hiro.png" alt="左のHiroマーカー">
     </article>
     <article class="marker">
-      <strong>右のマーカー</strong>
-      <img src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/images/hiro.png" alt="右のHiroマーカー">
+      <strong>右: Kanjiマーカー</strong>
+      <img src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/images/kanji.png" alt="右のKanjiマーカー">
     </article>
   </section>
 </main>
