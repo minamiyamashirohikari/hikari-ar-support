@@ -239,7 +239,7 @@
 <body id="top">
 <main class="setup">
   <h1>WebARでメニューを選ぶ</h1>
-  <p>Hiroマーカーを2枚並べると、左と右に別々の料理が浮かびます。まず下の2品を確認してからARを起動してください。</p>
+  <p>左はHiroマーカー、右はKanjiマーカーを並べると、左右に別々の料理が浮かびます。まず下の2品を確認してからARを起動してください。</p>
   <div class="notice">PC、iPad、iPhone、Androidでは、AR起動ボタンを押したあとにカメラ許可を「許可」にしてください。</div>
   <div class="camera-help" id="cameraHelp">カメラが映らない場合は、Safari/Chromeのサイト設定でカメラ許可をオンにし、HTTPSのURLで開いてください。</div>
 
@@ -247,21 +247,24 @@
     <article class="food-card">
       <div class="food-row">
         <img id="leftPreviewImg" alt="">
-        <div><strong id="leftPreviewName"></strong><small>左のマーカー</small></div>
+        <div><strong id="leftPreviewName"></strong><small>左: Hiroマーカー</small></div>
       </div>
       <button type="button" data-side="left" class="change-food">左を変更</button>
     </article>
     <article class="food-card">
       <div class="food-row">
         <img id="rightPreviewImg" alt="">
-        <div><strong id="rightPreviewName"></strong><small>右のマーカー</small></div>
+        <div><strong id="rightPreviewName"></strong><small>右: Kanjiマーカー</small></div>
       </div>
       <button type="button" data-side="right" class="change-food">右を変更</button>
     </article>
     <article class="marker-card">
-      <h2>Hiroマーカー</h2>
-      <p>同じHiroマーカーを2枚印刷し、少し離して置いてください。</p>
-      <img src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/images/hiro.png" alt="Hiroマーカー">
+      <h2>使うマーカー</h2>
+      <p>左はHiro、右はKanjiを使います。同じマーカー2枚では同時表示が不安定になります。</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;">
+        <div><strong>左 Hiro</strong><img src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/images/hiro.png" alt="左のHiroマーカー"></div>
+        <div><strong>右 Kanji</strong><img src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/images/kanji.png" alt="右のKanjiマーカー"></div>
+      </div>
     </article>
   </section>
 
@@ -544,7 +547,7 @@
           ${selectedAssets.map((item) => `<img id="tex-${item.id}" src="${item.image}" crossorigin="anonymous">`).join('')}
         </a-assets>
         <a-marker preset="hiro" id="marker-left" emitevents="true">${foodEntity(items[current.left], 'left')}</a-marker>
-        <a-marker preset="hiro" id="marker-right" emitevents="true">${foodEntity(items[current.right], 'right')}</a-marker>
+        <a-marker preset="kanji" id="marker-right" emitevents="true">${foodEntity(items[current.right], 'right')}</a-marker>
         <a-entity light="type: ambient; intensity: .72"></a-entity>
         <a-entity light="type: directional; intensity: .82" position="1 2 1"></a-entity>
         <a-entity camera></a-entity>
