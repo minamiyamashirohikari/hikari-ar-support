@@ -5,22 +5,64 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ARマーカー印刷</title>
 <style>
-  body { margin: 0; font-family: system-ui, "Yu Gothic", sans-serif; background: #f7f4ee; color: #2f2a24; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Yu Gothic", "Hiragino Sans", system-ui, sans-serif;
+    background: #f7f4ee;
+    color: #2f2a24;
+  }
   main { max-width: 960px; margin: 0 auto; padding: 24px; }
-  h1 { margin: 0 0 8px; }
+  h1 { margin: 0 0 8px; font-size: clamp(28px, 5vw, 40px); }
   p { color: #60574d; line-height: 1.7; }
-  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 16px 0; }
-  button, a { border: 0; border-radius: 8px; padding: 12px 16px; min-height: 48px; font-weight: 800; text-decoration: none; cursor: pointer; }
-  button { background: #2f6f73; color: #fff; }
-  a { background: #fff; color: #2f2a24; border: 1px solid #ded8cc; display: inline-flex; align-items: center; }
-  .sheet { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 20px; }
-  .marker { background: #fff; border: 1px solid #ded8cc; border-radius: 8px; padding: 20px; text-align: center; break-inside: avoid; }
-  .marker img { width: min(100%, 320px); }
-  .marker strong { display: block; font-size: 24px; margin-bottom: 12px; }
-  @media (max-width: 700px) { .sheet { grid-template-columns: 1fr; } }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 16px 0 24px; }
+  button,
+  a {
+    border-radius: 12px;
+    padding: 14px 18px;
+    min-height: 52px;
+    font-weight: 900;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  button { border: 0; background: #2f6f73; color: #fff; }
+  a {
+    display: inline-flex;
+    align-items: center;
+    background: #fff;
+    color: #2f2a24;
+    border: 1px solid #ded8cc;
+  }
+  .sheet {
+    display: grid;
+    grid-template-columns: minmax(240px, 520px);
+    justify-content: center;
+    gap: 22px;
+    margin-top: 20px;
+  }
+  .marker {
+    background: #fff;
+    border: 1px solid #ded8cc;
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+    break-inside: avoid;
+  }
+  .marker img {
+    display: block;
+    width: min(100%, 420px);
+    margin: 0 auto;
+  }
+  .marker strong {
+    display: block;
+    font-size: 28px;
+    margin-bottom: 16px;
+  }
   @media print {
     body { background: #fff; }
-    .actions, .note { display: none; }
+    main { max-width: none; padding: 0; }
+    .actions,
+    .note { display: none; }
     .marker { border: 2px solid #111; }
   }
 </style>
@@ -30,10 +72,10 @@
   <h1>ARマーカー印刷</h1>
   <p class="note">WebAR本番ではHiroマーカー1枚を使用します。1枚のマーカー上に左右2品を同時表示するため、認識が安定します。</p>
   <div class="actions">
-    <button onclick="window.print()">印刷する</button>
+    <button type="button" onclick="window.print()">印刷する</button>
     <a href="choice-camera.html">選択画面に戻る</a>
   </div>
-  <section class="sheet">
+  <section class="sheet" aria-label="印刷用ARマーカー">
     <article class="marker">
       <strong>Hiroマーカー</strong>
       <img src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/images/hiro.png" alt="Hiroマーカー">
