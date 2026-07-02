@@ -1,12 +1,12 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>WebAR本番</title>
 <script src="error_guard.js"></script>
-<script src="real_models.js?v=20260702-realglb"></script>
-<script src="generated_glb_models.js?v=20260702-glb10"></script>
+<script src="real_models.js?v=20260702-glb50"></script>
+<script src="generated_glb_models.js?v=20260702-glb50"></script>
 <script src="photo_data.js?v=20260702-photo10"></script>
 <script src="menu_data.js?v=20260702-realglb"></script>
 <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -294,63 +294,63 @@
 <body id="top">
 <main class="setup">
   <h1>WebARでメニューを選ぶ</h1>
-  <p>Hiroマーカー1枚を映すと、左と右に2つの料理が同時に浮かびます。まず下の2品を確認してからARを起動してください。</p>
+  <p>Hiroマーカーを映すと、左と右に2つの料理が同時に浮かびます。下の2品を確認してからARを起動してください。</p>
   <div class="notice">PC、iPad、iPhone、Androidでは、AR起動ボタンを押したあとにカメラ許可を「許可」にしてください。</div>
   <div class="camera-help" id="cameraHelp">カメラが映らない場合は、Safari/Chromeのサイト設定でカメラ許可をオンにし、HTTPSのURLで開いてください。</div>
-  <div class="quality-note">優先10品はGLBモデル登録済みです。ARでは写真カードではなく、登録済みの料理は3Dモデルとして表示します。施設の実物にさらに近づける場合は、同じ登録欄を実スキャンGLBへ差し替えできます。</div>
+  <div class="quality-note">全50メニューのGLBモデルを登録済みです。ARでは写真カードではなく、登録済みの料理を3Dモデルとして表示します。施設の実物にさらに近づける場合は、同じ登録欄を実スキャンGLBへ差し替えできます。</div>
 
-  <section class="cards" aria-label="表示する料理">
+  <section class="cards" aria-label="陦ｨ遉ｺ縺吶ｋ譁咏炊">
     <article class="food-card">
       <div class="food-row">
         <img id="leftPreviewImg" alt="">
-        <div><strong id="leftPreviewName"></strong><small>左に表示</small></div>
+        <div><strong id="leftPreviewName"></strong><small>蟾ｦ縺ｫ陦ｨ遉ｺ</small></div>
       </div>
-      <button type="button" data-side="left" class="change-food">左を変更</button>
+      <button type="button" data-side="left" class="change-food">蟾ｦ繧貞､画峩</button>
     </article>
     <article class="food-card">
       <div class="food-row">
         <img id="rightPreviewImg" alt="">
-        <div><strong id="rightPreviewName"></strong><small>右に表示</small></div>
+        <div><strong id="rightPreviewName"></strong><small>蜿ｳ縺ｫ陦ｨ遉ｺ</small></div>
       </div>
-      <button type="button" data-side="right" class="change-food">右を変更</button>
+      <button type="button" data-side="right" class="change-food">蜿ｳ繧貞､画峩</button>
     </article>
     <article class="marker-card">
-      <h2>使うマーカー</h2>
-      <p>Hiroマーカー1枚を使います。1枚のマーカー上に左右2品を同時表示するため、認識が安定します。</p>
-      <img src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/images/hiro.png" alt="Hiroマーカー">
+      <h2>菴ｿ縺・・繝ｼ繧ｫ繝ｼ</h2>
+      <p>Hiro繝槭・繧ｫ繝ｼ1譫壹ｒ菴ｿ縺・∪縺吶・譫壹・繝槭・繧ｫ繝ｼ荳翫↓蟾ｦ蜿ｳ2蜩√ｒ蜷梧凾陦ｨ遉ｺ縺吶ｋ縺溘ａ縲∬ｪ崎ｭ倥′螳牙ｮ壹＠縺ｾ縺吶・/p>
+      <img src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/images/hiro.png" alt="Hiro繝槭・繧ｫ繝ｼ">
     </article>
   </section>
 
-  <div class="actions" aria-label="WebAR操作">
-    <button class="primary" id="startAR" type="button">カメラを許可してAR起動</button>
-    <a class="secondary" href="マーカー印刷.html">マーカー印刷</a>
-    <a class="secondary" href="3d-model-production.html">3D登録</a>
-    <button class="secondary" id="cameraToggle" type="button">カメラ: アウト</button>
-    <button class="secondary" id="backTop" type="button">上へ戻る</button>
-    <a class="secondary" href="choice-camera.html">選択画面へ</a>
+  <div class="actions" aria-label="WebAR謫堺ｽ・>
+    <button class="primary" id="startAR" type="button">繧ｫ繝｡繝ｩ繧定ｨｱ蜿ｯ縺励※AR襍ｷ蜍・/button>
+    <a class="secondary" href="繝槭・繧ｫ繝ｼ蜊ｰ蛻ｷ.html">繝槭・繧ｫ繝ｼ蜊ｰ蛻ｷ</a>
+    <a class="secondary" href="3d-model-production.html">3D逋ｻ骭ｲ</a>
+    <button class="secondary" id="cameraToggle" type="button">繧ｫ繝｡繝ｩ: 繧｢繧ｦ繝・/button>
+    <button class="secondary" id="backTop" type="button">荳翫∈謌ｻ繧・/button>
+    <a class="secondary" href="choice-camera.html">驕ｸ謚樒判髱｢縺ｸ</a>
   </div>
 </main>
 
 <div class="ar-layer" id="arLayer">
   <div id="arHost"></div>
   <div class="top-controls">
-    <button id="closeAR" type="button">閉じる</button>
-    <button id="cameraToggleAR" type="button">カメラ切替</button>
-    <button id="compactAR" class="ar-menu-toggle" type="button">操作を隠す</button>
+    <button id="closeAR" type="button">髢峨§繧・/button>
+    <button id="cameraToggleAR" type="button">繧ｫ繝｡繝ｩ蛻・崛</button>
+    <button id="compactAR" class="ar-menu-toggle" type="button">謫堺ｽ懊ｒ髫縺・/button>
   </div>
-  <div class="status" id="statusText">カメラを準備しています</div>
+  <div class="status" id="statusText">繧ｫ繝｡繝ｩ繧呈ｺ門ｙ縺励※縺・∪縺・/div>
   <div class="hud">
-    <div class="hud-card"><strong id="leftHudName"></strong><button type="button" data-side="left" class="change-food">左を変更</button></div>
-    <button class="decide" id="decideBtn" type="button">これにする</button>
-    <div class="hud-card"><strong id="rightHudName"></strong><button type="button" data-side="right" class="change-food">右を変更</button></div>
+    <div class="hud-card"><strong id="leftHudName"></strong><button type="button" data-side="left" class="change-food">蟾ｦ繧貞､画峩</button></div>
+    <button class="decide" id="decideBtn" type="button">縺薙ｌ縺ｫ縺吶ｋ</button>
+    <div class="hud-card"><strong id="rightHudName"></strong><button type="button" data-side="right" class="change-food">蜿ｳ繧貞､画峩</button></div>
   </div>
 </div>
 
 <div class="picker" id="picker">
   <div class="picker-inner">
     <div class="picker-header">
-      <h2 id="pickerTitle" style="margin:0;">料理を選ぶ</h2>
-      <button class="secondary" id="closePicker" type="button">閉じる</button>
+      <h2 id="pickerTitle" style="margin:0;">譁咏炊繧帝∈縺ｶ</h2>
+      <button class="secondary" id="closePicker" type="button">髢峨§繧・/button>
     </div>
     <div class="picker-grid" id="pickerGrid"></div>
   </div>
@@ -368,7 +368,7 @@
   });
   const STORAGE_KEY = 'senshakuSelectedIds';
   const CAMERA_KEY = 'senshakuCameraMode';
-  const hotWords = ['あたたかい', 'カレー', 'めん', 'スープ', 'みそ', 'こってり'];
+  const hotWords = ['縺ゅ◆縺溘°縺・, '繧ｫ繝ｬ繝ｼ', '繧√ｓ', '繧ｹ繝ｼ繝・, '縺ｿ縺・, '縺薙▲縺ｦ繧・];
   let targetSide = 'left';
   let markerVisible = { left: false, right: false };
   let arRunning = false;
@@ -681,13 +681,13 @@
       window.setTimeout(() => {
         if (!arRunning) return;
         applyMobileVideoFixes();
-        if (cameraReady()) setStatus('マーカーをカメラに映してください');
+        if (cameraReady()) setStatus('繝槭・繧ｫ繝ｼ繧偵き繝｡繝ｩ縺ｫ譏縺励※縺上□縺輔＞');
       }, delay);
     });
     cameraWatchTimer = window.setTimeout(() => {
       if (!arRunning || cameraReady()) return;
-      setStatus('カメラ読み込み待ち');
-      setHelp('カメラが出ない場合は「閉じる」を押してから、もう一度AR起動を押してください。改善しない場合はSafari/Chromeのカメラ許可を確認してください。');
+      setStatus('繧ｫ繝｡繝ｩ隱ｭ縺ｿ霎ｼ縺ｿ蠕・■');
+      setHelp('繧ｫ繝｡繝ｩ縺悟・縺ｪ縺・ｴ蜷医・縲碁哩縺倥ｋ縲阪ｒ謚ｼ縺励※縺九ｉ縲√ｂ縺・ｸ蠎ｦAR襍ｷ蜍輔ｒ謚ｼ縺励※縺上□縺輔＞縲よ隼蝟・＠縺ｪ縺・ｴ蜷医・Safari/Chrome縺ｮ繧ｫ繝｡繝ｩ險ｱ蜿ｯ繧堤｢ｺ隱阪＠縺ｦ縺上□縺輔＞縲・);
     }, 12000);
   }
 
@@ -695,31 +695,31 @@
     if (arRunning) return;
     const button = document.getElementById('startAR');
     if (!window.isSecureContext) {
-      setHelp('カメラはHTTPSのURLでのみ安定して動作します。現在のページURLを確認してください。');
+      setHelp('繧ｫ繝｡繝ｩ縺ｯHTTPS縺ｮURL縺ｧ縺ｮ縺ｿ螳牙ｮ壹＠縺ｦ蜍穂ｽ懊＠縺ｾ縺吶ら樟蝨ｨ縺ｮ繝壹・繧ｸURL繧堤｢ｺ隱阪＠縺ｦ縺上□縺輔＞縲・);
       return;
     }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setHelp('このブラウザはカメラ機能に対応していません。SafariまたはChromeの最新版で開いてください。');
+      setHelp('縺薙・繝悶Λ繧ｦ繧ｶ縺ｯ繧ｫ繝｡繝ｩ讖溯・縺ｫ蟇ｾ蠢懊＠縺ｦ縺・∪縺帙ｓ縲４afari縺ｾ縺溘・Chrome縺ｮ譛譁ｰ迚医〒髢九＞縺ｦ縺上□縺輔＞縲・);
       return;
     }
     button.disabled = true;
-    button.textContent = 'AR起動中...';
-    setHelp('カメラ許可が出たら「許可」を選んでください。読み込みが止まった場合は閉じて再起動できます。');
+    button.textContent = 'AR襍ｷ蜍穂ｸｭ...';
+    setHelp('繧ｫ繝｡繝ｩ險ｱ蜿ｯ縺悟・縺溘ｉ縲瑚ｨｱ蜿ｯ縲阪ｒ驕ｸ繧薙〒縺上□縺輔＞縲りｪｭ縺ｿ霎ｼ縺ｿ縺梧ｭ｢縺ｾ縺｣縺溷ｴ蜷医・髢峨§縺ｦ蜀崎ｵｷ蜍輔〒縺阪∪縺吶・);
     closeAR();
     document.body.classList.add('ar-active');
-    setStatus('カメラを起動しています');
+    setStatus('繧ｫ繝｡繝ｩ繧定ｵｷ蜍輔＠縺ｦ縺・∪縺・);
     document.getElementById('arHost').innerHTML = sceneHtml();
     arRunning = true;
     watchCameraStartup();
     window.setTimeout(() => {
       bindMarkerEvents();
       applyMobileVideoFixes();
-      if (!cameraReady()) setStatus('カメラ許可を確認中');
+      if (!cameraReady()) setStatus('繧ｫ繝｡繝ｩ險ｱ蜿ｯ繧堤｢ｺ隱堺ｸｭ');
     }, 900);
     refreshLabels();
     window.setTimeout(() => {
       button.disabled = false;
-      button.textContent = 'カメラを許可してAR起動';
+      button.textContent = '繧ｫ繝｡繝ｩ繧定ｨｱ蜿ｯ縺励※AR襍ｷ蜍・;
     }, 700);
   }
 
@@ -730,7 +730,7 @@
     document.getElementById('arHost').innerHTML = '';
     markerVisible = { left: false, right: false };
     arRunning = false;
-    setStatus('カメラを準備しています');
+    setStatus('繧ｫ繝｡繝ｩ繧呈ｺ門ｙ縺励※縺・∪縺・);
   }
 
   function bindMarkerEvents() {
@@ -747,9 +747,9 @@
   }
 
   function updateStatus() {
-    if (markerVisible.left && markerVisible.right) setStatus('左右の料理が表示されています');
-    else if (markerVisible.left || markerVisible.right) setStatus('Hiroマーカーを画面中央に映してください');
-    else setStatus('マーカーをカメラに映してください');
+    if (markerVisible.left && markerVisible.right) setStatus('蟾ｦ蜿ｳ縺ｮ譁咏炊縺瑚｡ｨ遉ｺ縺輔ｌ縺ｦ縺・∪縺・);
+    else if (markerVisible.left || markerVisible.right) setStatus('Hiro繝槭・繧ｫ繝ｼ繧堤判髱｢荳ｭ螟ｮ縺ｫ譏縺励※縺上□縺輔＞');
+    else setStatus('繝槭・繧ｫ繝ｼ繧偵き繝｡繝ｩ縺ｫ譏縺励※縺上□縺輔＞');
   }
 
   function refreshLabels() {
@@ -767,7 +767,7 @@
 
   function openPicker(side) {
     targetSide = side;
-    document.getElementById('pickerTitle').textContent = `${side === 'left' ? '左' : '右'}の料理を選ぶ`;
+    document.getElementById('pickerTitle').textContent = `${side === 'left' ? '蟾ｦ' : '蜿ｳ'}縺ｮ譁咏炊繧帝∈縺ｶ`;
     document.getElementById('pickerGrid').innerHTML = items.map((item, index) => `
       <button class="picker-item" type="button" data-index="${index}">
         <img src="${item.image}" alt="${item.name}">
@@ -796,17 +796,17 @@
     const currentMode = cameraMode();
     const next = currentMode === 'environment' ? 'user' : 'environment';
     localStorage.setItem(CAMERA_KEY, next);
-    document.getElementById('cameraToggle').textContent = `カメラ: ${next === 'environment' ? 'アウト' : 'イン'}`;
+    document.getElementById('cameraToggle').textContent = `繧ｫ繝｡繝ｩ: ${next === 'environment' ? '繧｢繧ｦ繝・ : '繧､繝ｳ'}`;
     if (arRunning) {
       closeAR();
-      setHelp('カメラを切り替えました。もう一度「カメラを許可してAR起動」を押してください。');
+      setHelp('繧ｫ繝｡繝ｩ繧貞・繧頑崛縺医∪縺励◆縲ゅｂ縺・ｸ蠎ｦ縲後き繝｡繝ｩ繧定ｨｱ蜿ｯ縺励※AR襍ｷ蜍輔阪ｒ謚ｼ縺励※縺上□縺輔＞縲・);
     }
   }
 
   function toggleCompactAR() {
     const compact = !document.body.classList.contains('ar-compact');
     document.body.classList.toggle('ar-compact', compact);
-    document.getElementById('compactAR').textContent = compact ? '操作を表示' : '操作を隠す';
+    document.getElementById('compactAR').textContent = compact ? '謫堺ｽ懊ｒ陦ｨ遉ｺ' : '謫堺ｽ懊ｒ髫縺・;
   }
 
   document.querySelectorAll('.change-food').forEach((button) => {
@@ -825,7 +825,7 @@
   document.getElementById('decideBtn').addEventListener('click', () => {
     const left = items[current.left]?.name || '';
     const right = items[current.right]?.name || '';
-    alert(`候補を確認しました。\n左: ${left}\n右: ${right}`);
+    alert(`蛟呵｣懊ｒ遒ｺ隱阪＠縺ｾ縺励◆縲・n蟾ｦ: ${left}\n蜿ｳ: ${right}`);
   });
 
   window.addEventListener('pagehide', closeAR);
@@ -834,17 +834,17 @@
     if (!arRunning) return;
     const message = String(event.message || '');
     if (message.includes('Permission') || message.includes('camera') || message.includes('getUserMedia')) {
-      setHelp('カメラ起動でエラーが出ました。ブラウザのカメラ許可を確認し、閉じるを押して再起動してください。');
+      setHelp('繧ｫ繝｡繝ｩ襍ｷ蜍輔〒繧ｨ繝ｩ繝ｼ縺悟・縺ｾ縺励◆縲ゅヶ繝ｩ繧ｦ繧ｶ縺ｮ繧ｫ繝｡繝ｩ險ｱ蜿ｯ繧堤｢ｺ隱阪＠縲・哩縺倥ｋ繧呈款縺励※蜀崎ｵｷ蜍輔＠縺ｦ縺上□縺輔＞縲・);
     }
   });
   window.addEventListener('unhandledrejection', (event) => {
     if (!arRunning) return;
     const reason = String(event.reason?.message || event.reason || '');
     if (reason.includes('Permission') || reason.includes('camera') || reason.includes('getUserMedia')) {
-      setHelp('カメラ起動でエラーが出ました。ブラウザのカメラ許可を確認し、閉じるを押して再起動してください。');
+      setHelp('繧ｫ繝｡繝ｩ襍ｷ蜍輔〒繧ｨ繝ｩ繝ｼ縺悟・縺ｾ縺励◆縲ゅヶ繝ｩ繧ｦ繧ｶ縺ｮ繧ｫ繝｡繝ｩ險ｱ蜿ｯ繧堤｢ｺ隱阪＠縲・哩縺倥ｋ繧呈款縺励※蜀崎ｵｷ蜍輔＠縺ｦ縺上□縺輔＞縲・);
     }
   });
-  document.getElementById('cameraToggle').textContent = `カメラ: ${cameraMode() === 'environment' ? 'アウト' : 'イン'}`;
+  document.getElementById('cameraToggle').textContent = `繧ｫ繝｡繝ｩ: ${cameraMode() === 'environment' ? '繧｢繧ｦ繝・ : '繧､繝ｳ'}`;
   refreshLabels();
 })();
 </script>
