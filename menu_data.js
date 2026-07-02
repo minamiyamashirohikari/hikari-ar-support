@@ -21,6 +21,18 @@
   ];
 
   const categoryById = Object.fromEntries(categories.map(([id, label, emoji, color]) => [id, { id, label, emoji, color }]));
+  const photoImages = {
+    shoyu_ramen: 'assets/photos/shoyu_ramen.png',
+    miso_ramen: 'assets/photos/miso_ramen.png',
+    beef_curry: 'assets/photos/beef_curry.png',
+    hamburg_steak: 'assets/photos/hamburg_steak.png',
+    omurice: 'assets/photos/omurice.png',
+    fried_chicken_plate: 'assets/photos/fried_chicken_plate.png',
+    udon: 'assets/photos/udon.png',
+    gyudon: 'assets/photos/gyudon.png',
+    katsudon: 'assets/photos/katsudon.png',
+    spaghetti: 'assets/photos/spaghetti.png'
+  };
 
   function svgFood(item) {
     const label = item.name;
@@ -254,7 +266,9 @@
       modelPosition: realModel ? realModel.position : '',
       tags
     };
-    item.image = svgFood(item);
+    item.image = (window.PHOTO_IMAGES && window.PHOTO_IMAGES[id]) || photoImages[id] || svgFood(item);
+    item.generatedImage = svgFood(item);
+    item.photoImage = (window.PHOTO_IMAGES && window.PHOTO_IMAGES[id]) || photoImages[id] || '';
     return item;
   });
 })();
