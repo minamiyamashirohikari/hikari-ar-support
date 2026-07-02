@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GLBモデル調整プレビュー</title>
+<script src="real_models.js?v=20260702-realglb"></script>
+<script src="menu_data.js?v=20260702-realglb"></script>
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Yu Gothic", "Hiragino Sans", system-ui, sans-serif;
+    color: #2f2a24;
+    background: linear-gradient(135deg, #f8f1e6 0%, #eef5ee 100%);
+  }
+  main { max-width: 1120px; margin: 0 auto; padding: 22px clamp(14px, 4vw, 34px) 80px; }
+  h1 { margin: 0 0 8px; font-size: clamp(28px, 5vw, 42px); }
+  p { color: #5f554a; line-height: 1.75; }
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 420px) 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .panel {
+    background: rgba(255,255,255,.96);
+    border: 1px solid #ded3c3;
+    border-radius: 22px;
+    padding: 16px;
+    box-shadow: 0 14px 32px rgba(70,50,25,.08);
+  }
+  label { display: block; margin-top: 12px; font-weight: 900; }
+  select,
+  input,
+  textarea {
+    width: 100%;
+    min-height: 44px;
+    margin-top: 6px;
+    border: 1px solid #ded3c3;
+    border-radius: 12px;
+    padding: 9px 10px;
+    font: inherit;
+    background: #fffdf8;
+  }
+  textarea { min-height: 180px; font-family: ui-monospace, Consolas, monospace; }
+  .grid3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .viewer {
+    min-height: 560px;
+    overflow: hidden;
+    background: #16130f;
+  }
+  a-scene {
+    width: 100%;
+    height: 560px;
+    border-radius: 18px;
+    overflow: hidden;
+  }
+  button,
+  a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    border: 0;
+    border-radius: 13px;
+    padding: 10px 14px;
+    background: #2f6f73;
+    color: #fff;
+    font-weight: 900;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .secondary { background: #fff; color: #2f2a24; border: 1px solid #ded3c3; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  .note {
+    margin: 14px 0;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: #fff1ef;
+    border: 1px solid #efc2ba;
+    font-weight: 900;
+    color: #5f2b24;
+  }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+    a-scene { height: 420px; }
+    .viewer { min-height: 420px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>GLBモデル調整プレビュー</h1>
+  <p>3DスキャンしたGLBを本番ARに入れる前に、向き・大きさ・高さを確認するページです。ここで作った登録コードを <code>real_models.js</code> に貼ると、本番ARで実物GLBが表示されます。</p>
+  <div class="note">このページは確認用です。選んだGLBはブラウザ内で一時表示するだけで、GitHubへ自動保存はしません。</div>
+
+  <div class="layout">
+    <section class="panel">
+      <h2>登録内容</h2>
+      <label for="targetId">対象メニュー</label>
+      <select id="targetId"></select>
+
+      <label for="glbFile">GLBファイルを選ぶ</label>
+      <input id="glbFile" type="file" accept=".glb,.gltf,model/gltf-binary,model/gltf+json">
+
+      <label>大きさ scale</label>
+      <div class="grid3">
+        <input id="scaleX" value=".9" inputmode="decimal">
+        <input id="scaleY" value=".9" inputmode="decimal">
+        <input id="scaleZ" value=".9" inputmode="decimal">
+      </div>
+
+      <label>回転 rotation</label>
+      <div class="grid3">
+        <input id="rotX" value="0" inputmode="decimal">
+        <input id="rotY" value="0" inputmode="decimal">
+        <input id="rotZ" value="0" inputmode="decimal">
+      </div>
+
+      <label>位置 position</label>
+      <div class="grid3">
+        <input id="posX" value="0" inputmode="decimal">
+        <input id="posY" value=".12" inputmode="decimal">
+        <input id="posZ" value="0" inputmode="decimal">
+      </div>
+
+      <div class="actions">
+        <button type="button" id="applyBtn">プレビュー更新</button>
+        <button type="button" id="copyBtn" class="secondary">登録コードをコピー</button>
+      </div>
+
+      <label for="snippet">real_models.js に貼る登録コード</label>
+      <textarea id="snippet" readonly></textarea>
+    </section>
+
+    <section class="panel viewer">
+      <a-scene embedded renderer="antialias: true; colorManagement: true" vr-mode-ui="enabled: false">
+        <a-assets id="assets"></a-assets>
+        <a-entity light="type: ambient; intensity: .72"></a-entity>
+        <a-entity light="type: directional; intensity: .85" position="1 2 1"></a-entity>
+        <a-plane width="4" height="4" rotation="-90 0 0" color="#e8ddca"></a-plane>
+        <a-ring radius-inner=".62" radius-outer="1.15" rotation="-90 0 0" color="#2f6f73" material="opacity:.28; transparent:true"></a-ring>
+        <a-entity id="modelRoot"></a-entity>
+        <a-camera position="0 1.35 3.2" look-controls="enabled: true"></a-camera>
+      </a-scene>
+    </section>
+  </div>
+
+  <div class="actions">
+    <a href="3d-model-production.html">制作管理へ</a>
+    <a class="secondary" href="webar-camera.html">AR確認へ</a>
+    <a class="secondary" href="choice-camera.html">選択画面へ</a>
+  </div>
+</main>
+
+<script>
+(function () {
+  const targets = window.REAL_MODEL_TARGETS || [];
+  const items = window.MENU_ITEMS || [];
+  const target = document.getElementById('targetId');
+  const file = document.getElementById('glbFile');
+  const root = document.getElementById('modelRoot');
+  const snippet = document.getElementById('snippet');
+  let objectUrl = '';
+
+  target.innerHTML = targets.map((id) => {
+    const item = items.find((entry) => entry.id === id);
+    return `<option value="${id}">${item ? item.name : id} (${id})</option>`;
+  }).join('');
+
+  function value(id) {
+    return document.getElementById(id).value.trim();
+  }
+
+  function currentFileName() {
+    const id = target.value;
+    return `assets/models/${id}.glb`;
+  }
+
+  function buildSnippet() {
+    const id = target.value;
+    const scale = `${value('scaleX')} ${value('scaleY')} ${value('scaleZ')}`;
+    const rotation = `${value('rotX')} ${value('rotY')} ${value('rotZ')}`;
+    const position = `${value('posX')} ${value('posY')} ${value('posZ')}`;
+    snippet.value = `window.registerRealFoodModel('${id}', {
+  url: '${currentFileName()}',
+  scale: '${scale}',
+  rotation: '${rotation}',
+  position: '${position}'
+});`;
+  }
+
+  function updatePreview() {
+    buildSnippet();
+    root.innerHTML = '';
+    if (!objectUrl) return;
+    const model = document.createElement('a-gltf-model');
+    model.setAttribute('src', objectUrl);
+    model.setAttribute('scale', `${value('scaleX')} ${value('scaleY')} ${value('scaleZ')}`);
+    model.setAttribute('rotation', `${value('rotX')} ${value('rotY')} ${value('rotZ')}`);
+    model.setAttribute('position', `${value('posX')} ${value('posY')} ${value('posZ')}`);
+    root.appendChild(model);
+  }
+
+  file.addEventListener('change', () => {
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    objectUrl = file.files && file.files[0] ? URL.createObjectURL(file.files[0]) : '';
+    updatePreview();
+  });
+
+  ['targetId', 'scaleX', 'scaleY', 'scaleZ', 'rotX', 'rotY', 'rotZ', 'posX', 'posY', 'posZ'].forEach((id) => {
+    document.getElementById(id).addEventListener('input', updatePreview);
+    document.getElementById(id).addEventListener('change', updatePreview);
+  });
+  document.getElementById('applyBtn').addEventListener('click', updatePreview);
+  document.getElementById('copyBtn').addEventListener('click', async () => {
+    buildSnippet();
+    try {
+      await navigator.clipboard.writeText(snippet.value);
+      document.getElementById('copyBtn').textContent = 'コピーしました';
+      window.setTimeout(() => { document.getElementById('copyBtn').textContent = '登録コードをコピー'; }, 1400);
+    } catch (_) {
+      snippet.focus();
+      snippet.select();
+    }
+  });
+
+  buildSnippet();
+})();
+</script>
+</body>
+</html>
