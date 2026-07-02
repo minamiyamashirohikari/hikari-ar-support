@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>WebAR本番</title>
 <script src="error_guard.js"></script>
+<script src="real_models.js"></script>
 <script src="menu_data.js"></script>
 <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
@@ -37,6 +38,16 @@
     line-height: 1.65;
   }
   .camera-help { margin-top: 12px; background: #eef8f5; border-color: #c6ded7; }
+  .quality-note {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: #fff1ef;
+    border: 1px solid #efc2ba;
+    color: #5f2b24;
+    font-weight: 900;
+    line-height: 1.65;
+  }
   .cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -284,6 +295,7 @@
   <p>Hiroマーカー1枚を映すと、左と右に2つの料理が同時に浮かびます。まず下の2品を確認してからARを起動してください。</p>
   <div class="notice">PC、iPad、iPhone、Androidでは、AR起動ボタンを押したあとにカメラ許可を「許可」にしてください。</div>
   <div class="camera-help" id="cameraHelp">カメラが映らない場合は、Safari/Chromeのサイト設定でカメラ許可をオンにし、HTTPSのURLで開いてください。</div>
+  <div class="quality-note">実物と相違がないAR表示にするには、施設の実メニューを3DスキャンしたGLBモデルが必要です。未登録の料理は、誤解を避けるため簡易3Dではなく「実物3Dモデル未登録」と表示します。</div>
 
   <section class="cards" aria-label="表示する料理">
     <article class="food-card">
@@ -347,18 +359,6 @@
   const STORAGE_KEY = 'senshakuSelectedIds';
   const CAMERA_KEY = 'senshakuCameraMode';
   const hotWords = ['あたたかい', 'カレー', 'めん', 'スープ', 'みそ', 'こってり'];
-  const REALISTIC_MODEL_IDS = new Set([
-    'shoyu_ramen',
-    'miso_ramen',
-    'gyudon',
-    'katsudon',
-    'beef_curry',
-    'hamburg_steak',
-    'omurice',
-    'fried_chicken_plate',
-    'udon',
-    'spaghetti'
-  ]);
   let targetSide = 'left';
   let markerVisible = { left: false, right: false };
   let arRunning = false;
@@ -531,32 +531,34 @@
       <a-sphere radius=".04" position=".18 .61 -.14" ${material('#4d9a55')}></a-sphere>`;
   }
 
-  function realisticFoodModel(item) {
-    if (item.id === 'shoyu_ramen' || item.id === 'miso_ramen') return ramenModel(item.id);
-    if (item.id === 'udon') return udonModel();
-    if (item.id === 'beef_curry') return curryModel(false);
-    if (item.id === 'gyudon' || item.id === 'katsudon') return donModel(item.id);
-    if (item.id === 'hamburg_steak') return hamburgModel();
-    if (item.id === 'omurice') return omuriceModel();
-    if (item.id === 'fried_chicken_plate') return friedChickenModel();
-    if (item.id === 'spaghetti') return spaghettiModel();
-    return '';
+  function registeredGlbModel(item) {
+    if (!item.modelUrl) return '';
+    const scale = item.modelScale || '.9 .9 .9';
+    const rotation = item.modelRotation || '0 0 0';
+    const position = item.modelPosition || '0 .12 0';
+    return `
+      <a-gltf-model
+        src="#model-${item.id}"
+        position="${position}"
+        rotation="${rotation}"
+        scale="${scale}">
+      </a-gltf-model>`;
   }
 
-  function fallbackFoodModel(item, color) {
+  function modelMissingPlaceholder(item, color) {
     return `
-      <a-cylinder radius="1.02" height=".16" material="color:#F7ECDD; roughness:.74; metalness:.02"></a-cylinder>
-      <a-cylinder radius=".84" height=".32" position="0 .10 0" material="src:#tex-${item.id}; roughness:.82; metalness:.01"></a-cylinder>
-      <a-circle radius=".86" rotation="-90 0 0" position="0 .25 0" material="src:#tex-${item.id}; side:double; roughness:.76; metalness:.01"></a-circle>
-      <a-torus radius=".92" radius-tubular=".034" color="#fff" position="0 .03 0" rotation="-90 0 0" material="roughness:.26; metalness:.12; opacity:.88; transparent:true"></a-torus>
-      <a-ring radius-inner=".95" radius-outer="1.32" color="${color}" rotation="-90 0 0" position="0 .02 0" material="opacity:.18; transparent:true; side:double; shader:flat; emissive:${color}; emissiveIntensity:.18"></a-ring>`;
+      <a-cylinder radius=".86" height=".07" material="color:#F7ECDD; roughness:.74; metalness:.02"></a-cylinder>
+      <a-ring radius-inner=".72" radius-outer="1.05" color="${color}" rotation="-90 0 0" position="0 .04 0" material="opacity:.22; transparent:true; side:double; shader:flat"></a-ring>
+      <a-plane width="1.9" height=".72" position="0 .58 0" rotation="-18 0 0" material="color:#2f2a24; opacity:.78; transparent:true; shader:flat"></a-plane>
+      <a-text value="実物3Dモデル未登録" align="center" width="2.5" color="#fff" position="0 .66 .02" rotation="-18 0 0"></a-text>
+      <a-text value="${item.name}" align="center" width="2.3" color="#fff7d8" position="0 .44 .03" rotation="-18 0 0"></a-text>`;
   }
 
   function foodEntity(item, side) {
     const color = colorOf(item);
     const x = side === 'left' ? '-1.05' : '1.05';
     const yaw = side === 'left' ? '16' : '-16';
-    const isRealistic = REALISTIC_MODEL_IDS.has(item.id);
+    const hasRealModel = !!item.modelUrl;
     const steam = hot(item)
       ? `<a-entity position="0 .55 0">
           <a-cylinder radius=".018" height=".52" color="#fff" material="transparent:true; opacity:.42" animation="property: position; to: 0 .86 0; dur: 2200; loop: true; dir: alternate; easing: easeInOutSine"></a-cylinder>
@@ -568,8 +570,8 @@
         <a-circle radius="1.18" rotation="-90 0 0" position="0 .001 0" material="color:#000; opacity:.18; transparent:true; shader:flat"></a-circle>
         <a-circle radius=".92" rotation="-90 0 0" position="0 .003 0" material="color:#000; opacity:.06; transparent:true; shader:flat"></a-circle>
         <a-entity position="0 .18 0" animation__float="property: position; to: 0 .26 0; dir: alternate; dur: 2600; loop: true; easing: easeInOutSine">
-          ${isRealistic ? realisticFoodModel(item) : fallbackFoodModel(item, color)}
-          ${steam}
+          ${hasRealModel ? registeredGlbModel(item) : modelMissingPlaceholder(item, color)}
+          ${hasRealModel ? steam : ''}
         </a-entity>
         <a-text value="${item.name}" align="center" width="3.0" color="#fff" position="0 1.42 0" rotation="-18 0 0"></a-text>
       </a-entity>`;
@@ -579,6 +581,12 @@
     const assets = document.querySelector('#arScene a-assets');
     if (!assets) return;
     [items[current.left], items[current.right]].filter(Boolean).forEach((item) => {
+      if (item.modelUrl && !document.getElementById(`model-${item.id}`)) {
+        const asset = document.createElement('a-asset-item');
+        asset.id = `model-${item.id}`;
+        asset.setAttribute('src', item.modelUrl);
+        assets.appendChild(asset);
+      }
       if (document.getElementById(`tex-${item.id}`)) return;
       const img = document.createElement('img');
       img.id = `tex-${item.id}`;
@@ -611,6 +619,7 @@
         arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false; detectionMode: mono; maxDetectionRate: 15; sourceWidth: 640; sourceHeight: 480; displayWidth: 640; displayHeight: 480;">
         <a-assets>
           ${selectedAssets.map((item) => `<img id="tex-${item.id}" src="${item.image}" crossorigin="anonymous">`).join('')}
+          ${selectedAssets.filter((item) => item.modelUrl).map((item) => `<a-asset-item id="model-${item.id}" src="${item.modelUrl}"></a-asset-item>`).join('')}
         </a-assets>
         <a-marker preset="hiro" id="marker-main" emitevents="true">
           ${foodEntity(items[current.left], 'left')}
