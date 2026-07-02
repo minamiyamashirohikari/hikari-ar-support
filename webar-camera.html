@@ -6,6 +6,7 @@
 <title>WebAR本番</title>
 <script src="error_guard.js"></script>
 <script src="real_models.js?v=20260702-realglb"></script>
+<script src="photo_data.js?v=20260702-photo10"></script>
 <script src="menu_data.js?v=20260702-realglb"></script>
 <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
@@ -295,7 +296,7 @@
   <p>Hiroマーカー1枚を映すと、左と右に2つの料理が同時に浮かびます。まず下の2品を確認してからARを起動してください。</p>
   <div class="notice">PC、iPad、iPhone、Androidでは、AR起動ボタンを押したあとにカメラ許可を「許可」にしてください。</div>
   <div class="camera-help" id="cameraHelp">カメラが映らない場合は、Safari/Chromeのサイト設定でカメラ許可をオンにし、HTTPSのURLで開いてください。</div>
-  <div class="quality-note">実物と相違がないAR表示にするには、施設の実メニューを3DスキャンしたGLBモデルが必要です。未登録の料理は、誤解を避けるため簡易3Dではなく「実物3Dモデル未登録」と表示します。</div>
+  <div class="quality-note">まずは一般的な料理写真に近い高品質画像でAR表示します。施設の実物にさらに近づける場合は、あとからGLBモデルへ差し替えできます。</div>
 
   <section class="cards" aria-label="表示する料理">
     <article class="food-card">
@@ -553,13 +554,13 @@
       </a-gltf-model>`;
   }
 
-  function modelMissingPlaceholder(item, color) {
+  function photoReliefModel(item, color) {
     return `
-      <a-cylinder radius=".86" height=".07" material="color:#F7ECDD; roughness:.74; metalness:.02"></a-cylinder>
-      <a-ring radius-inner=".72" radius-outer="1.05" color="${color}" rotation="-90 0 0" position="0 .04 0" material="opacity:.22; transparent:true; side:double; shader:flat"></a-ring>
-      <a-plane width="1.9" height=".72" position="0 .58 0" rotation="-18 0 0" material="color:#2f2a24; opacity:.78; transparent:true; shader:flat"></a-plane>
-      <a-text value="実物3Dモデル未登録" align="center" width="2.5" color="#fff" position="0 .66 .02" rotation="-18 0 0"></a-text>
-      <a-text value="${item.name}" align="center" width="2.3" color="#fff7d8" position="0 .44 .03" rotation="-18 0 0"></a-text>`;
+      <a-cylinder radius="1.02" height=".08" material="color:#F7ECDD; roughness:.74; metalness:.02"></a-cylinder>
+      <a-cylinder radius=".9" height=".10" position="0 .08 0" material="src:#tex-${item.id}; roughness:.82; metalness:.01"></a-cylinder>
+      <a-circle radius=".9" rotation="-90 0 0" position="0 .15 0" material="src:#tex-${item.id}; side:double; roughness:.76; metalness:.01"></a-circle>
+      <a-torus radius=".94" radius-tubular=".032" color="#fff" position="0 .10 0" rotation="-90 0 0" material="roughness:.26; metalness:.12; opacity:.88; transparent:true"></a-torus>
+      <a-ring radius-inner=".96" radius-outer="1.22" color="${color}" rotation="-90 0 0" position="0 .04 0" material="opacity:.16; transparent:true; side:double; shader:flat; emissive:${color}; emissiveIntensity:.12"></a-ring>`;
   }
 
   function foodEntity(item, side) {
@@ -578,8 +579,8 @@
         <a-circle radius="1.18" rotation="-90 0 0" position="0 .001 0" material="color:#000; opacity:.18; transparent:true; shader:flat"></a-circle>
         <a-circle radius=".92" rotation="-90 0 0" position="0 .003 0" material="color:#000; opacity:.06; transparent:true; shader:flat"></a-circle>
         <a-entity position="0 .18 0" animation__float="property: position; to: 0 .26 0; dir: alternate; dur: 2600; loop: true; easing: easeInOutSine">
-          ${hasRealModel ? registeredGlbModel(item) : modelMissingPlaceholder(item, color)}
-          ${hasRealModel ? steam : ''}
+          ${hasRealModel ? registeredGlbModel(item) : photoReliefModel(item, color)}
+          ${steam}
         </a-entity>
         <a-text value="${item.name}" align="center" width="3.0" color="#fff" position="0 1.42 0" rotation="-18 0 0"></a-text>
       </a-entity>`;
