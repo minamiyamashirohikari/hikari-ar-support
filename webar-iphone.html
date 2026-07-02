@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>iPhone安定AR表示</title>
+<script src="photo_data.js?v=20260702-photo10"></script>
+<script src="menu_data.js?v=20260702-realglb"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    width: 100%;
+    min-height: 100%;
+    overflow: hidden;
+    font-family: "Yu Gothic", "Hiragino Sans", system-ui, sans-serif;
+    background: #101817;
+    color: #fff;
+  }
+  video {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #101817;
+  }
+  .top {
+    position: fixed;
+    top: max(14px, env(safe-area-inset-top));
+    left: 12px;
+    right: 12px;
+    z-index: 5;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  button, a {
+    border: 0;
+    border-radius: 999px;
+    min-height: 44px;
+    padding: 10px 14px;
+    font-weight: 900;
+    font-size: 15px;
+    text-decoration: none;
+    background: rgba(255,255,255,.94);
+    color: #123;
+    box-shadow: 0 8px 20px rgba(0,0,0,.14);
+  }
+  .primary { background: #2f787c; color: #fff; }
+  .decide { background: #cf6038; color: #fff; width: 100%; border-radius: 18px; }
+  .status {
+    position: fixed;
+    z-index: 4;
+    top: calc(72px + env(safe-area-inset-top));
+    left: 14px;
+    right: 14px;
+    text-align: center;
+    font-weight: 900;
+    text-shadow: 0 2px 8px rgba(0,0,0,.75);
+  }
+  .food-stage {
+    position: fixed;
+    z-index: 3;
+    left: 50%;
+    top: 47%;
+    width: min(90vw, 440px);
+    transform: translate(-50%, -50%);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    align-items: end;
+  }
+  .food {
+    position: relative;
+    min-height: 170px;
+    display: grid;
+    place-items: center;
+  }
+  .food::before {
+    content: "";
+    position: absolute;
+    bottom: 18px;
+    width: 82%;
+    height: 30px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.20);
+    filter: blur(12px);
+  }
+  .food::after {
+    content: "";
+    position: absolute;
+    bottom: 34px;
+    width: 86%;
+    aspect-ratio: 1 / .42;
+    border-radius: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(232,222,204,.94));
+    box-shadow: inset 0 -10px 18px rgba(90,60,30,.12), 0 6px 18px rgba(0,0,0,.10);
+  }
+  .food img {
+    position: relative;
+    z-index: 2;
+    width: min(38vw, 150px);
+    height: min(38vw, 150px);
+    object-fit: contain;
+    border-radius: 22px;
+    transform: perspective(640px) rotateX(8deg) translateY(-24px);
+    filter: saturate(1.05) contrast(1.04);
+  }
+  .name {
+    position: absolute;
+    z-index: 3;
+    left: 50%;
+    bottom: -2px;
+    transform: translateX(-50%);
+    max-width: 96%;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.94);
+    color: #20231f;
+    font-size: 13px;
+    font-weight: 900;
+    white-space: nowrap;
+    box-shadow: 0 6px 18px rgba(0,0,0,.18);
+  }
+  .bottom {
+    position: fixed;
+    z-index: 5;
+    left: 12px;
+    right: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    display: grid;
+    gap: 10px;
+  }
+  .choices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .choice {
+    border-radius: 18px;
+    padding: 12px;
+    background: rgba(255,255,255,.92);
+    color: #20231f;
+  }
+  .choice strong {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 16px;
+  }
+  .choice button {
+    width: 100%;
+    background: #2f787c;
+    color: #fff;
+    border-radius: 14px;
+  }
+  .picker {
+    display: none;
+    position: fixed;
+    z-index: 10;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+    padding: 12px;
+  }
+  .picker.show { display: block; }
+  .panel {
+    margin-top: 18vh;
+    max-height: 72vh;
+    overflow: auto;
+    background: #fffdf8;
+    color: #20231f;
+    border-radius: 24px 24px 0 0;
+    padding: 14px;
+  }
+  .panel-head {
+    position: sticky;
+    top: -14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 4px;
+    background: #fffdf8;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
+  }
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #e4d8c8;
+    border-radius: 14px;
+    padding: 8px;
+    background: #fff;
+    text-align: left;
+  }
+  .item img { width: 48px; height: 48px; object-fit: contain; border-radius: 10px; }
+</style>
+</head>
+<body>
+<video id="camera" playsinline webkit-playsinline muted autoplay></video>
+<div class="top">
+  <a href="choice-camera.html">戻る</a>
+  <button id="switchCamera">カメラ切替</button>
+  <button class="primary" id="startCamera">カメラ起動</button>
+</div>
+<div class="status" id="status">カメラ起動を押してください</div>
+<div class="food-stage">
+  <div class="food"><img id="leftImg" alt=""><div class="name" id="leftName"></div></div>
+  <div class="food"><img id="rightImg" alt=""><div class="name" id="rightName"></div></div>
+</div>
+<div class="bottom">
+  <div class="choices">
+    <div class="choice"><strong id="leftChoice"></strong><button data-side="left">左を変更</button></div>
+    <div class="choice"><strong id="rightChoice"></strong><button data-side="right">右を変更</button></div>
+  </div>
+  <button class="decide" id="decide">これにする</button>
+</div>
+<div class="picker" id="picker">
+  <div class="panel">
+    <div class="panel-head"><h2 id="pickerTitle">料理を選ぶ</h2><button id="closePicker">閉じる</button></div>
+    <div class="grid" id="pickerGrid"></div>
+  </div>
+</div>
+<script>
+(function () {
+  const items = window.MENU_ITEMS || [];
+  const STORAGE_KEY = 'senshakuSelectedIds';
+  const CAMERA_KEY = 'senshakuCameraMode';
+  let stream = null;
+  let targetSide = 'left';
+  let mode = localStorage.getItem(CAMERA_KEY) || 'environment';
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  const current = {
+    left: Math.max(0, items.findIndex((item) => item.id === saved[0])),
+    right: Math.max(1, items.findIndex((item) => item.id === saved[1]))
+  };
+
+  function item(index) { return items[index] || items[0]; }
+  function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify([item(current.left).id, item(current.right).id])); }
+  function setStatus(text) { document.getElementById('status').textContent = text; }
+  function refresh() {
+    const left = item(current.left);
+    const right = item(current.right);
+    document.getElementById('leftImg').src = left.image;
+    document.getElementById('leftImg').alt = left.name;
+    document.getElementById('leftName').textContent = '左: ' + left.name;
+    document.getElementById('leftChoice').textContent = left.name;
+    document.getElementById('rightImg').src = right.image;
+    document.getElementById('rightImg').alt = right.name;
+    document.getElementById('rightName').textContent = '右: ' + right.name;
+    document.getElementById('rightChoice').textContent = right.name;
+    save();
+  }
+  async function startCamera() {
+    if (stream) stream.getTracks().forEach((track) => track.stop());
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { facingMode: { ideal: mode }, width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      const video = document.getElementById('camera');
+      video.srcObject = stream;
+      await video.play();
+      setStatus('中央に料理を表示しています');
+    } catch (_) {
+      setStatus('カメラ許可を確認してください');
+    }
+  }
+  function openPicker(side) {
+    targetSide = side;
+    document.getElementById('pickerTitle').textContent = (side === 'left' ? '左' : '右') + 'の料理を選ぶ';
+    document.getElementById('pickerGrid').innerHTML = items.map((entry, index) => `
+      <button class="item" data-index="${index}">
+        <img src="${entry.image}" alt="${entry.name}">
+        <span><strong>${entry.name}</strong><br><small>${entry.reading || ''}</small></span>
+      </button>
+    `).join('');
+    document.querySelectorAll('.item').forEach((button) => {
+      button.addEventListener('click', () => {
+        current[targetSide] = Number(button.dataset.index);
+        refresh();
+        closePicker();
+      });
+    });
+    document.getElementById('picker').classList.add('show');
+  }
+  function closePicker() { document.getElementById('picker').classList.remove('show'); }
+  document.querySelectorAll('.choice button').forEach((button) => button.addEventListener('click', () => openPicker(button.dataset.side)));
+  document.getElementById('closePicker').addEventListener('click', closePicker);
+  document.getElementById('picker').addEventListener('click', (event) => { if (event.target.id === 'picker') closePicker(); });
+  document.getElementById('startCamera').addEventListener('click', startCamera);
+  document.getElementById('switchCamera').addEventListener('click', () => {
+    mode = mode === 'environment' ? 'user' : 'environment';
+    localStorage.setItem(CAMERA_KEY, mode);
+    startCamera();
+  });
+  document.getElementById('decide').addEventListener('click', () => {
+    alert('候補を確認しました。\n左: ' + item(current.left).name + '\n右: ' + item(current.right).name);
+  });
+  window.addEventListener('pagehide', () => { if (stream) stream.getTracks().forEach((track) => track.stop()); });
+  refresh();
+})();
+</script>
+</body>
+</html>
