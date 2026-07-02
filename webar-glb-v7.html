@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Hiroマーカー追従 3D料理AR v7</title>
+<script src="real_models.js?v=20260702-glb50"></script>
+<script src="generated_glb_models.js?v=20260702-glb50"></script>
+<script src="menu_data.js?v=20260702-realglb"></script>
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:"Yu Gothic","Hiragino Sans",system-ui,sans-serif;background:#101817;color:#fff}
+video{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;background:#101817}
+a-scene{position:fixed;inset:0;width:100%;height:100%;z-index:10;pointer-events:none}
+.top{position:fixed;z-index:20;top:max(14px,env(safe-area-inset-top));left:12px;right:12px;display:flex;gap:8px}
+.top a,.top button{min-height:42px;border:0;border-radius:999px;padding:9px 13px;background:rgba(255,255,255,.94);color:#102224;font-weight:900;font-size:14px;text-decoration:none}
+.top .primary{background:#2f787c;color:#fff}
+.status{position:fixed;z-index:18;top:calc(68px + env(safe-area-inset-top));left:12px;right:12px;text-align:center;font-weight:900;font-size:20px;line-height:1.25;text-shadow:0 2px 8px rgba(0,0,0,.85)}
+.bottom{position:fixed;z-index:20;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));display:grid;gap:9px}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.choice{border-radius:16px;padding:10px;background:rgba(255,255,255,.88);color:#20231f}
+.choice strong{display:block;margin-bottom:7px;font-size:15px}
+.choice button,.decide{width:100%;min-height:42px;border:0;border-radius:14px;background:#2f787c;color:#fff;font-weight:900;font-size:16px}
+.decide{background:#cf6038;border-radius:18px}
+.picker{display:none;position:fixed;z-index:30;inset:0;background:rgba(0,0,0,.45);padding:12px}
+.picker.show{display:block}
+.panel{margin-top:18vh;max-height:72vh;overflow:auto;background:#fffdf8;color:#20231f;border-radius:24px 24px 0 0;padding:14px}
+.head{position:sticky;top:-14px;display:flex;justify-content:space-between;align-items:center;background:#fffdf8;padding:12px 4px}
+.head button{border:0;border-radius:999px;background:#2f787c;color:#fff;font-weight:900;padding:10px 16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.item{display:flex;align-items:center;gap:8px;border:1px solid #e4d8c8;border-radius:14px;padding:8px;background:#fff;text-align:left;font-weight:800}
+.thumb{width:48px;height:48px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff8d8,#d0833a 55%,#7a351b);box-shadow:inset 0 -8px 16px rgba(0,0,0,.22)}
+canvas#scan{display:none}
+</style>
+</head>
+<body>
+<video id="camera" playsinline webkit-playsinline muted autoplay></video>
+<canvas id="scan" width="176" height="132"></canvas>
+
+<div class="top">
+  <a href="choice-camera.html">戻る</a>
+  <button id="switchCamera">カメラ切替</button>
+  <button class="primary" id="startCamera">カメラ起動</button>
+</div>
+<div class="status" id="status">Hiroマーカーを映すと、料理が3Dで浮かびます</div>
+
+<a-scene embedded renderer="alpha: true; antialias: true; colorManagement: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+  <a-assets id="assets"></a-assets>
+  <a-entity light="type: ambient; intensity: 1.15"></a-entity>
+  <a-entity light="type: directional; intensity: 1.35" position="-1 2 1.5"></a-entity>
+  <a-entity light="type: point; intensity: .45; distance: 4" position="1.4 1.2 1"></a-entity>
+
+  <a-entity id="leftAnchor" visible="false">
+    <a-entity id="leftModelRoot"></a-entity>
+    <a-circle radius=".42" rotation="-90 0 0" position="0 -.12 0" material="color:#000; opacity:.28; transparent:true; shader:flat"></a-circle>
+    <a-circle radius=".28" rotation="-90 0 0" position=".04 -.115 .03" material="color:#fff0c8; opacity:.18; transparent:true; shader:flat"></a-circle>
+  </a-entity>
+  <a-entity id="rightAnchor" visible="false">
+    <a-entity id="rightModelRoot"></a-entity>
+    <a-circle radius=".42" rotation="-90 0 0" position="0 -.12 0" material="color:#000; opacity:.28; transparent:true; shader:flat"></a-circle>
+    <a-circle radius=".28" rotation="-90 0 0" position=".04 -.115 .03" material="color:#fff0c8; opacity:.18; transparent:true; shader:flat"></a-circle>
+  </a-entity>
+  <a-camera id="sceneCamera" position="0 0 0" look-controls="enabled: false" wasd-controls="enabled: false"></a-camera>
+</a-scene>
+
+<div class="bottom">
+  <div class="choices">
+    <div class="choice"><strong id="leftChoice"></strong><button data-side="left">左を変更</button></div>
+    <div class="choice"><strong id="rightChoice"></strong><button data-side="right">右を変更</button></div>
+  </div>
+  <button class="decide" id="decide">これにする</button>
+</div>
+
+<div class="picker" id="picker">
+  <div class="panel">
+    <div class="head"><h2 id="pickerTitle">料理を選ぶ</h2><button id="closePicker">閉じる</button></div>
+    <div class="grid" id="pickerGrid"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const labels = {
+    shoyu_ramen:'醤油ラーメン',miso_ramen:'味噌ラーメン',tonkotsu_ramen:'豚骨ラーメン',tsukemen:'つけ麺',
+    gyudon:'牛丼',oyakodon:'親子丼',katsudon:'カツ丼',beef_curry:'ビーフカレー',katsu_curry:'カツカレー',vegetable_curry:'野菜カレー',
+    sushi:'寿司',grilled_fish:'焼き魚',tempura:'天ぷら',udon:'うどん',hamburg_steak:'ハンバーグ',omurice:'オムライス',
+    fried_chicken_plate:'唐揚げ定食',kids_plate:'お子様ランチ',spaghetti:'スパゲッティ',gratin:'グラタン',stew:'シチュー',
+    hamburger:'ハンバーガー',pizza:'ピザ',fried_potato:'フライドポテト',sandwich:'サンドイッチ',soup:'スープ',salad:'サラダ',
+    pudding:'プリン',cake:'ケーキ',ice_cream:'アイスクリーム',fruit_jelly:'フルーツゼリー',tea:'お茶',water:'水',orange_juice:'オレンジジュース',milk:'牛乳',
+    onigiri:'おにぎり',bread_roll:'ロールパン',toast:'トースト',gyoza:'餃子',fried_rice:'チャーハン',mapo_tofu:'麻婆豆腐',harumaki:'春巻き',
+    osechi:'おせち',chirashi_sushi:'ちらし寿司',ehomaki:'恵方巻き',toshikoshi_soba:'年越しそば',
+    facility_breakfast:'施設の朝食',facility_lunch:'施設の昼食',facility_snack_fruit:'果物のおやつ',facility_snack_yogurt:'ヨーグルトのおやつ'
+  };
+
+  const models = window.REAL_MODEL_FILES || {};
+  const sourceItems = Array.isArray(window.MENU_ITEMS) ? window.MENU_ITEMS : [];
+  const byId = Object.fromEntries(sourceItems.map(x => [x.id, x]));
+  const ids = (window.REAL_MODEL_TARGETS || Object.keys(models)).filter(id => models[id]);
+  const items = ids.map(id => ({
+    id,
+    name: labels[id] || (byId[id] && byId[id].name) || id.replace(/_/g,' '),
+    reading: byId[id] && byId[id].reading || '',
+    image: byId[id] && byId[id].image || ''
+  }));
+
+  const KEY='senshakuSelectedIds';
+  const CK='senshakuCameraMode';
+  const saved = JSON.parse(localStorage.getItem(KEY) || '[]');
+  const current = {
+    left: Math.max(0, items.findIndex(x => x.id === (saved[0] || 'miso_ramen'))),
+    right: Math.max(1, items.findIndex(x => x.id === (saved[1] || 'gyudon')))
+  };
+  if (current.left === current.right) current.right = (current.left + 1) % items.length;
+
+  let stream=null, mode=localStorage.getItem(CK)||'environment', targetSide='left', timer=null;
+  const $ = id => document.getElementById(id);
+  const item = i => items[i] || items[0];
+
+  function status(text){ $('status').textContent = text; }
+  function save(){ localStorage.setItem(KEY, JSON.stringify([item(current.left).id, item(current.right).id])); }
+
+  function ensureAsset(entry){
+    if(!entry || !models[entry.id] || $(entry.id+'-asset')) return;
+    const asset = document.createElement('a-asset-item');
+    asset.id = entry.id + '-asset';
+    asset.setAttribute('src', models[entry.id].url);
+    $('assets').appendChild(asset);
+  }
+
+  function setModel(rootId, entry){
+    ensureAsset(entry);
+    const root = $(rootId);
+    if(!models[entry.id]){
+      root.innerHTML = '';
+      return;
+    }
+    const m = models[entry.id];
+    root.innerHTML =
+      '<a-entity position="0 .1 0" animation__float="property: position; to: 0 .22 0; dir: alternate; dur: 1800; loop: true; easing: easeInOutSine">' +
+      '<a-gltf-model src="#' + entry.id + '-asset" position="' + (m.position || '0 .12 0') + '" rotation="' + (m.rotation || '0 0 0') + '" scale="' + (m.scale || '.9 .9 .9') + '" animation__yaw="property: rotation; to: -4 18 2; dir: alternate; dur: 3200; loop: true; easing: easeInOutSine"></a-gltf-model>' +
+      '</a-entity>';
+  }
+
+  function refresh(){
+    const left = item(current.left), right = item(current.right);
+    $('leftChoice').textContent = left.name;
+    $('rightChoice').textContent = right.name;
+    setModel('leftModelRoot', left);
+    setModel('rightModelRoot', right);
+    save();
+  }
+
+  async function startCam(){
+    if(stream) stream.getTracks().forEach(t => t.stop());
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio:false,
+        video:{facingMode:{ideal:mode},width:{ideal:1280},height:{ideal:720}}
+      });
+      $('camera').srcObject = stream;
+      await $('camera').play();
+      status('Hiroマーカーを映してください');
+      if(timer) clearInterval(timer);
+      timer = setInterval(scanMarker, 120);
+    }catch(e){
+      status('カメラ許可を確認してください');
+    }
+  }
+
+  function makePoint(marker, side, forcedX){
+    const nx = forcedX == null ? (marker.cx / marker.vw - .5) * 2 : forcedX;
+    const ny = (.5 - marker.cy / marker.vh) * 2;
+    return {
+      x: Math.max(-.95, Math.min(.95, nx * 1.05 + (side === 'left' ? -.12 : .12))),
+      y: Math.max(-.62, Math.min(.56, ny * .78 + .12)),
+      z: -1.9
+    };
+  }
+
+  function displayRoll(){
+    const raw = screen.orientation && typeof screen.orientation.angle === 'number'
+      ? screen.orientation.angle
+      : (typeof window.orientation === 'number' ? window.orientation : 0);
+    const angle = ((raw % 360) + 360) % 360;
+    if(angle === 90) return -90;
+    if(angle === 270) return 90;
+    return 0;
+  }
+
+  function place(anchor, marker, side, forcedX){
+    const p = makePoint(marker, side, forcedX);
+    const scale = Math.max(.54, Math.min(.92, marker.w / 36));
+    const roll = displayRoll();
+    anchor.setAttribute('visible','true');
+    anchor.setAttribute('position', p.x + ' ' + p.y + ' ' + p.z);
+    anchor.setAttribute('scale', scale + ' ' + scale + ' ' + scale);
+    anchor.setAttribute('rotation', '-10 ' + (side === 'left' ? -10 : 10) + ' ' + roll);
+  }
+
+  function hide(){
+    $('leftAnchor').setAttribute('visible','false');
+    $('rightAnchor').setAttribute('visible','false');
+  }
+
+  function scanMarker(){
+    const video = $('camera');
+    if(!video.videoWidth){ hide(); return; }
+    const canvas = $('scan');
+    const ctx = canvas.getContext('2d', {willReadFrequently:true});
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+    const seen = new Uint8Array(canvas.width * canvas.height);
+    const marks = [];
+    const dark = i => data[i*4] + data[i*4+1] + data[i*4+2] < 210;
+
+    for(let y=0;y<canvas.height;y+=2){
+      for(let x=0;x<canvas.width;x+=2){
+        const start = y*canvas.width+x;
+        if(seen[start] || !dark(start)) continue;
+        const queue=[start];
+        let minX=x,maxX=x,minY=y,maxY=y,count=0;
+        seen[start]=1;
+        for(let qi=0;qi<queue.length;qi++){
+          const p=queue[qi], px=p%canvas.width, py=(p/canvas.width)|0;
+          count++;
+          if(px<minX)minX=px; if(px>maxX)maxX=px; if(py<minY)minY=py; if(py>maxY)maxY=py;
+          [[2,0],[-2,0],[0,2],[0,-2]].forEach(([dx,dy])=>{
+            const nx=px+dx, ny=py+dy;
+            if(nx<0 || ny<0 || nx>=canvas.width || ny>=canvas.height) return;
+            const ni=ny*canvas.width+nx;
+            if(!seen[ni] && dark(ni)){ seen[ni]=1; queue.push(ni); }
+          });
+        }
+        const w=maxX-minX, h=maxY-minY, area=w*h, ratio=w/(h||1), fill=count/(area||1);
+        if(count>95 && w>15 && h>15 && ratio>.55 && ratio<1.8 && fill>.08){
+          marks.push({cx:(minX+maxX)/2, cy:(minY+maxY)/2, w, h, vw:canvas.width, vh:canvas.height, score:count});
+        }
+      }
+    }
+
+    marks.sort((a,b)=>b.score-a.score);
+    const picked=[];
+    for(const mark of marks){
+      if(picked.every(p => Math.hypot(p.cx-mark.cx,p.cy-mark.cy) > 24)) picked.push(mark);
+      if(picked.length === 2) break;
+    }
+
+    if(!picked.length){
+      hide();
+      status('Hiroマーカーを映してください');
+      return;
+    }
+
+    picked.sort((a,b)=>a.cx-b.cx);
+    if(picked.length === 1){
+      place($('leftAnchor'), picked[0], 'left', -.55);
+      place($('rightAnchor'), picked[0], 'right', .55);
+    }else{
+      const tooVertical = Math.abs(picked[0].cx - picked[1].cx) < 22;
+      if(tooVertical){
+        const merged = {
+          cx:(picked[0].cx+picked[1].cx)/2,
+          cy:(picked[0].cy+picked[1].cy)/2,
+          w:Math.max(picked[0].w,picked[1].w),
+          h:Math.max(picked[0].h,picked[1].h),
+          vw:picked[0].vw,
+          vh:picked[0].vh
+        };
+        place($('leftAnchor'), merged, 'left', -.55);
+        place($('rightAnchor'), merged, 'right', .55);
+      }else{
+        place($('leftAnchor'), picked[0], 'left');
+        place($('rightAnchor'), picked[1], 'right');
+      }
+    }
+    status('Hiroマーカーから3D料理を浮かせています');
+  }
+
+  function openPicker(side){
+    targetSide = side;
+    $('pickerTitle').textContent = (side === 'left' ? '左' : '右') + 'の料理を選ぶ';
+    $('pickerGrid').innerHTML = items.map((entry, index) =>
+      '<button class="item" data-index="' + index + '"><span class="thumb"></span><span>' + entry.name + '</span></button>'
+    ).join('');
+    document.querySelectorAll('.item').forEach(button => {
+      button.addEventListener('click', () => {
+        current[targetSide] = Number(button.dataset.index);
+        if(current.left === current.right) current[targetSide] = (current[targetSide] + 1) % items.length;
+        refresh();
+        closePanel();
+      });
+    });
+    $('picker').classList.add('show');
+  }
+
+  function closePanel(){ $('picker').classList.remove('show'); }
+
+  document.querySelectorAll('.choice button').forEach(button => button.addEventListener('click', () => openPicker(button.dataset.side)));
+  $('closePicker').addEventListener('click', closePanel);
+  $('picker').addEventListener('click', e => { if(e.target.id === 'picker') closePanel(); });
+  $('startCamera').addEventListener('click', startCam);
+  $('switchCamera').addEventListener('click', () => {
+    mode = mode === 'environment' ? 'user' : 'environment';
+    localStorage.setItem(CK, mode);
+    startCam();
+  });
+  $('decide').addEventListener('click', () => alert('選択を確認しました。\n左: ' + item(current.left).name + '\n右: ' + item(current.right).name));
+  window.addEventListener('pagehide', () => {
+    if(timer) clearInterval(timer);
+    if(stream) stream.getTracks().forEach(t => t.stop());
+  });
+  refresh();
+})();
+</script>
+</body>
+</html>
