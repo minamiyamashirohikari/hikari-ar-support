@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>実物3Dモデル制作・登録</title>
-<script src="real_models.js?v=20260702-realglb"></script>
-<script src="generated_glb_models.js?v=20260702-glb10"></script>
+<title>3Dモデル登録状況</title>
+<script src="real_models.js?v=20260702-glb50"></script>
+<script src="generated_glb_models.js?v=20260702-glb50"></script>
 <script src="photo_data.js?v=20260702-photo10"></script>
 <script src="menu_data.js?v=20260702-realglb"></script>
 <style>
@@ -18,7 +18,7 @@
       radial-gradient(circle at 12% 10%, rgba(255,224,160,.34), transparent 28%),
       linear-gradient(135deg, #f8f1e6 0%, #eef5ee 100%);
   }
-  main { max-width: 1080px; margin: 0 auto; padding: 24px clamp(14px, 4vw, 34px) 80px; }
+  main { max-width: 1120px; margin: 0 auto; padding: 24px clamp(14px, 4vw, 34px) 80px; }
   h1 { margin: 0 0 8px; font-size: clamp(28px, 5vw, 44px); }
   h2 { margin: 0 0 8px; }
   p { line-height: 1.8; color: #5f554a; }
@@ -30,7 +30,13 @@
     border-radius: 22px;
     box-shadow: 0 14px 32px rgba(70,50,25,.08);
   }
-  .notice { padding: 16px 18px; margin: 18px 0; font-weight: 900; color: #5f2b24; background: #fff1ef; }
+  .notice {
+    padding: 16px 18px;
+    margin: 18px 0;
+    font-weight: 900;
+    color: #24533e;
+    background: #eaf7ef;
+  }
   .panel { padding: 18px; margin: 16px 0; }
   .steps {
     display: grid;
@@ -78,14 +84,6 @@
     background: #f3eadf;
     color: #3b2b1d;
   }
-  pre {
-    overflow: auto;
-    padding: 14px;
-    border-radius: 16px;
-    background: #2f2a24;
-    color: #fff7e8;
-    line-height: 1.6;
-  }
   .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
   a {
     display: inline-flex;
@@ -104,39 +102,28 @@
 </head>
 <body>
 <main>
-  <h1>実物3Dモデル制作・登録</h1>
-  <p>ARで「実物と相違がない」品質を目指すための制作管理ページです。ここでは架空の料理モデルは使わず、施設の実メニューを3DスキャンしたGLBだけを登録対象にします。</p>
+  <h1>3Dモデル登録状況</h1>
+  <p>全50メニューをGLBとして登録しました。ARでは平面カードではなく、登録済みの料理を3Dモデルとして読み込みます。</p>
 
-  <div class="notice">まずは使用頻度の高い10品を本物3D化します。未登録の料理はARで「実物3Dモデル未登録」と表示されます。</div>
+  <div class="notice">現在のGLBは、アプリ内で安全に表示確認できる軽量3Dモデルです。施設の実物料理にさらに近づける場合は、同じIDのGLBを実スキャンや専門制作モデルへ差し替えるだけで運用できます。</div>
 
   <section class="panel">
-    <h2>制作手順</h2>
+    <h2>今後の本物化の流れ</h2>
     <div class="steps">
-      <div class="step"><strong>1. 実物を用意</strong><p>実際に提供する器・盛り付け・量で撮影します。</p></div>
-      <div class="step"><strong>2. 3Dスキャン</strong><p>Polycam、Luma AI、Scaniverse等でGLBを書き出します。</p></div>
-      <div class="step"><strong>3. 軽量化</strong><p>スマホAR用に1品あたり10MB以下を目安にします。</p></div>
-      <div class="step"><strong>4. 登録</strong><p><code>assets/models/</code> に置き、<code>real_models.js</code> に登録します。</p></div>
+      <div class="step"><strong>1. 実物を用意</strong><p>施設で実際に提供する料理を、器・盛り付け・量が分かる状態で撮影します。</p></div>
+      <div class="step"><strong>2. 3D化</strong><p>3Dスキャンや制作GLBに置き換えます。ファイル名は既存IDに合わせます。</p></div>
+      <div class="step"><strong>3. 軽量化</strong><p>スマホやタブレットARで安定するよう、1品あたり10MB以下を目安にします。</p></div>
+      <div class="step"><strong>4. 差し替え</strong><p><code>generated_glb_models.js</code> の該当モデルを置き換えると、AR側にも反映されます。</p></div>
     </div>
   </section>
 
   <section class="panel">
-    <h2>優先10品の登録状況</h2>
+    <h2>全50メニューの登録状況</h2>
     <div class="target-grid" id="targetGrid"></div>
   </section>
 
-  <section class="panel">
-    <h2>登録例</h2>
-    <p>GLBファイルを <code>assets/models/shoyu_ramen.glb</code> に置いた場合は、<code>real_models.js</code> に次のように追加します。</p>
-    <pre><code>window.registerRealFoodModel('shoyu_ramen', {
-  url: 'assets/models/shoyu_ramen.glb',
-  scale: '.9 .9 .9',
-  rotation: '0 0 0',
-  position: '0 .12 0'
-});</code></pre>
-  </section>
-
   <div class="actions">
-    <a href="model-preview.html">GLB調整プレビューへ</a>
+    <a href="model-preview.html">GLBプレビューへ</a>
     <a href="webar-camera.html">AR確認へ</a>
     <a class="secondary" href="choice-camera.html">選択画面へ</a>
   </div>
@@ -148,6 +135,7 @@
   const items = window.MENU_ITEMS || [];
   const models = window.REAL_MODEL_FILES || {};
   const grid = document.getElementById('targetGrid');
+
   grid.innerHTML = targets.map((id) => {
     const item = items.find((entry) => entry.id === id) || { id, name: id, reading: '', image: '' };
     const model = models[id];
@@ -158,7 +146,7 @@
         <span class="badge ${model ? 'done' : 'todo'}">${model ? '登録済み' : '未登録'}</span>
         <h3>${item.name}</h3>
         <p>${item.reading || ''}</p>
-        <p>推奨ファイル名<br><code>${fileName}</code></p>
+        <p>対応ファイル<br><code>${fileName}</code></p>
       </article>
     `;
   }).join('');
