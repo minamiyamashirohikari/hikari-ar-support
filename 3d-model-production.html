@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>実物3Dモデル制作・登録</title>
+<script src="real_models.js?v=20260702-realglb"></script>
+<script src="menu_data.js?v=20260702-realglb"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Yu Gothic", "Hiragino Sans", system-ui, sans-serif;
+    color: #2f2a24;
+    background:
+      radial-gradient(circle at 12% 10%, rgba(255,224,160,.34), transparent 28%),
+      linear-gradient(135deg, #f8f1e6 0%, #eef5ee 100%);
+  }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px clamp(14px, 4vw, 34px) 80px; }
+  h1 { margin: 0 0 8px; font-size: clamp(28px, 5vw, 44px); }
+  h2 { margin: 0 0 8px; }
+  p { line-height: 1.8; color: #5f554a; }
+  .notice,
+  .panel,
+  .target-card {
+    background: rgba(255,255,255,.95);
+    border: 1px solid #ded3c3;
+    border-radius: 22px;
+    box-shadow: 0 14px 32px rgba(70,50,25,.08);
+  }
+  .notice { padding: 16px 18px; margin: 18px 0; font-weight: 900; color: #5f2b24; background: #fff1ef; }
+  .panel { padding: 18px; margin: 16px 0; }
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .step {
+    border: 1px solid #eadfce;
+    border-radius: 16px;
+    background: #fffdf8;
+    padding: 14px;
+  }
+  .target-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .target-card { padding: 14px; }
+  .target-card img {
+    width: 92px;
+    height: 92px;
+    object-fit: contain;
+    border-radius: 16px;
+    background: #fff8ec;
+    float: right;
+    margin-left: 10px;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: 13px;
+  }
+  .done { background: #e5f4ea; color: #225b39; }
+  .todo { background: #fff0d9; color: #6a4216; }
+  code {
+    display: inline-block;
+    padding: 3px 6px;
+    border-radius: 8px;
+    background: #f3eadf;
+    color: #3b2b1d;
+  }
+  pre {
+    overflow: auto;
+    padding: 14px;
+    border-radius: 16px;
+    background: #2f2a24;
+    color: #fff7e8;
+    line-height: 1.6;
+  }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+  a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 12px 16px;
+    border-radius: 14px;
+    background: #2f6f73;
+    color: #fff;
+    font-weight: 900;
+    text-decoration: none;
+  }
+  a.secondary { background: #fff; color: #2f2a24; border: 1px solid #ded3c3; }
+</style>
+</head>
+<body>
+<main>
+  <h1>実物3Dモデル制作・登録</h1>
+  <p>ARで「実物と相違がない」品質を目指すための制作管理ページです。ここでは架空の料理モデルは使わず、施設の実メニューを3DスキャンしたGLBだけを登録対象にします。</p>
+
+  <div class="notice">まずは使用頻度の高い10品を本物3D化します。未登録の料理はARで「実物3Dモデル未登録」と表示されます。</div>
+
+  <section class="panel">
+    <h2>制作手順</h2>
+    <div class="steps">
+      <div class="step"><strong>1. 実物を用意</strong><p>実際に提供する器・盛り付け・量で撮影します。</p></div>
+      <div class="step"><strong>2. 3Dスキャン</strong><p>Polycam、Luma AI、Scaniverse等でGLBを書き出します。</p></div>
+      <div class="step"><strong>3. 軽量化</strong><p>スマホAR用に1品あたり10MB以下を目安にします。</p></div>
+      <div class="step"><strong>4. 登録</strong><p><code>assets/models/</code> に置き、<code>real_models.js</code> に登録します。</p></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>優先10品の登録状況</h2>
+    <div class="target-grid" id="targetGrid"></div>
+  </section>
+
+  <section class="panel">
+    <h2>登録例</h2>
+    <p>GLBファイルを <code>assets/models/shoyu_ramen.glb</code> に置いた場合は、<code>real_models.js</code> に次のように追加します。</p>
+    <pre><code>window.registerRealFoodModel('shoyu_ramen', {
+  url: 'assets/models/shoyu_ramen.glb',
+  scale: '.9 .9 .9',
+  rotation: '0 0 0',
+  position: '0 .12 0'
+});</code></pre>
+  </section>
+
+  <div class="actions">
+    <a href="webar-camera.html">AR確認へ</a>
+    <a class="secondary" href="choice-camera.html">選択画面へ</a>
+  </div>
+</main>
+
+<script>
+(function () {
+  const targets = window.REAL_MODEL_TARGETS || [];
+  const items = window.MENU_ITEMS || [];
+  const models = window.REAL_MODEL_FILES || {};
+  const grid = document.getElementById('targetGrid');
+  grid.innerHTML = targets.map((id) => {
+    const item = items.find((entry) => entry.id === id) || { id, name: id, reading: '', image: '' };
+    const model = models[id];
+    const fileName = `assets/models/${id}.glb`;
+    return `
+      <article class="target-card">
+        ${item.image ? `<img src="${item.image}" alt="${item.name}">` : ''}
+        <span class="badge ${model ? 'done' : 'todo'}">${model ? '登録済み' : '未登録'}</span>
+        <h3>${item.name}</h3>
+        <p>${item.reading || ''}</p>
+        <p>推奨ファイル名<br><code>${fileName}</code></p>
+      </article>
+    `;
+  }).join('');
+})();
+</script>
+</body>
+</html>
