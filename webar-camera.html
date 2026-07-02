@@ -141,6 +141,10 @@
     width: 100%;
     height: 100%;
   }
+  #arHost {
+    opacity: 0;
+    pointer-events: none;
+  }
   body.ar-active video:not(#cameraBackdrop),
   #arHost video:not(#cameraBackdrop) {
     opacity: 0 !important;
@@ -182,6 +186,74 @@
     font-size: 14px;
     pointer-events: none;
   }
+  .floating-food-overlay {
+    position: fixed;
+    z-index: 118;
+    left: 50%;
+    top: 50%;
+    width: min(92vw, 520px);
+    transform: translate(-50%, -54%);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(14px, 5vw, 34px);
+    pointer-events: none;
+  }
+  .floating-food {
+    position: relative;
+    min-height: 190px;
+    display: grid;
+    place-items: center;
+    filter: drop-shadow(0 18px 22px rgba(0,0,0,.22));
+  }
+  .floating-food::before {
+    content: "";
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    bottom: 20px;
+    height: 24px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.16);
+    filter: blur(10px);
+  }
+  .floating-food::after {
+    content: "";
+    position: absolute;
+    width: 74%;
+    aspect-ratio: 1 / .38;
+    bottom: 34px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(236,226,207,.92));
+    border: 1px solid rgba(255,255,255,.72);
+    box-shadow: inset 0 -8px 18px rgba(105,70,35,.12);
+  }
+  .floating-food img {
+    position: relative;
+    z-index: 2;
+    width: min(34vw, 170px);
+    height: min(34vw, 170px);
+    object-fit: contain;
+    border-radius: 22px;
+    transform: perspective(620px) rotateX(8deg) translateY(-18px);
+  }
+  .floating-food-name {
+    position: absolute;
+    z-index: 3;
+    left: 50%;
+    bottom: -8px;
+    transform: translateX(-50%);
+    max-width: 100%;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.92);
+    color: #1d2421;
+    font-size: 13px;
+    font-weight: 900;
+    white-space: nowrap;
+    box-shadow: 0 6px 18px rgba(0,0,0,.16);
+  }
+  .floating-food.left img { transform: perspective(620px) rotateX(8deg) rotateZ(-2deg) translateY(-18px); }
+  .floating-food.right img { transform: perspective(620px) rotateX(8deg) rotateZ(2deg) translateY(-18px); }
   .hud {
     position: fixed;
     z-index: 120;
@@ -222,6 +294,7 @@
   }
   .ar-menu-toggle { background: rgba(47,111,115,.96) !important; color: #fff; }
   body.ar-compact .hud { display: none; }
+  body.ar-compact .floating-food-name { display: none; }
   .picker {
     display: none;
     position: fixed;
@@ -286,6 +359,23 @@
       left: 8px;
       right: 8px;
       font-size: 12px;
+    }
+    .floating-food-overlay {
+      top: 47%;
+      width: min(90vw, 430px);
+      gap: 12px;
+    }
+    .floating-food {
+      min-height: 150px;
+    }
+    .floating-food img {
+      width: min(38vw, 145px);
+      height: min(38vw, 145px);
+    }
+    .floating-food-name {
+      font-size: 12px;
+      bottom: -4px;
+      padding: 6px 10px;
     }
     .hud {
       left: 8px;
@@ -359,6 +449,7 @@
 <div class="ar-layer" id="arLayer">
   <video id="cameraBackdrop" playsinline webkit-playsinline muted autoplay></video>
   <div id="arHost"></div>
+  <div class="floating-food-overlay" id="htmlFoodOverlay" aria-label="表示中の料理"></div>
   <div class="top-controls">
     <button id="closeAR" type="button">閉じる</button>
     <button id="cameraToggleAR" type="button">カメラ切替</button>
@@ -654,6 +745,25 @@
     `;
   }
 
+  function htmlFoodCard(item, side) {
+    const label = side === 'left' ? '左' : '右';
+    return `
+      <div class="floating-food ${side}">
+        <img src="${item.image}" alt="${item.name}">
+        <div class="floating-food-name">${label}: ${item.name}</div>
+      </div>
+    `;
+  }
+
+  function refreshHtmlFoodOverlay() {
+    const overlay = document.getElementById('htmlFoodOverlay');
+    if (!overlay) return;
+    overlay.innerHTML = `
+      ${htmlFoodCard(items[current.left], 'left')}
+      ${htmlFoodCard(items[current.right], 'right')}
+    `;
+  }
+
   function ensureSceneAssets() {
     const assets = document.querySelector('#arScene a-assets');
     if (!assets) return;
@@ -684,6 +794,7 @@
     }
     const overlay = document.getElementById('cameraFoodOverlay');
     if (overlay) overlay.innerHTML = cameraFoodOverlayHtml();
+    refreshHtmlFoodOverlay();
     updateStatus();
   }
 
@@ -784,7 +895,7 @@
       window.setTimeout(() => {
         if (!arRunning) return;
         applyMobileVideoFixes();
-        if (cameraReady()) setStatus('Hiroマーカーをカメラに映してください');
+        if (cameraReady()) setStatus('中央に料理を表示しています');
       }, delay);
     });
     cameraWatchTimer = window.setTimeout(() => {
@@ -852,8 +963,7 @@
 
   function updateStatus() {
     if (markerVisible.left && markerVisible.right) setStatus('左右の料理が表示されています');
-    else if (markerVisible.left || markerVisible.right) setStatus('Hiroマーカーを画面中央に映してください');
-    else setStatus('Hiroマーカーをカメラに映してください');
+    else setStatus('中央に料理を表示しています');
   }
 
   function refreshLabels() {
@@ -867,6 +977,7 @@
     set('rightHudName', right.name);
     img('leftPreviewImg', left);
     img('rightPreviewImg', right);
+    refreshHtmlFoodOverlay();
   }
 
   function openPicker(side) {
