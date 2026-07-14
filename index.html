@@ -1,345 +1,129 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>障害者支援施設の意思決定支援用WebARツール</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
-<script src="error_guard.js"></script>
-<style>
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: 'Zen Maru Gothic', sans-serif;
-    background: #f7f4ee;
-    color: #2f2a24;
-  }
-  main {
-    max-width: 1080px;
-    margin: 0 auto;
-    padding: clamp(22px, 5vw, 56px);
-  }
-  .hero {
-    min-height: 72vh;
-    display: grid;
-    align-content: center;
-    gap: 22px;
-  }
-  .eyebrow {
-    display: inline-flex;
-    width: fit-content;
-    border: 1px solid #cfc7bb;
-    border-radius: 999px;
-    padding: 7px 12px;
-    color: #5f554b;
-    font-weight: 700;
-    background: #fff;
-  }
-  h1 {
-    margin: 0;
-    font-size: clamp(32px, 7vw, 68px);
-    line-height: 1.12;
-    max-width: 900px;
-  }
-  .lead {
-    margin: 0;
-    max-width: 780px;
-    color: #5f554b;
-    font-size: clamp(16px, 2.5vw, 21px);
-    line-height: 1.8;
-  }
-  .actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  a {
-    color: inherit;
-  }
-  .primary, .secondary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 52px;
-    padding: 12px 18px;
-    border-radius: 8px;
-    font-weight: 900;
-    text-decoration: none;
-  }
-  .primary { background: #2f6f73; color: #fff; }
-  .secondary { background: #fff; border: 1px solid #d8d0c4; }
-  .summary {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 12px;
-  }
-  .item {
-    background: #fff;
-    border: 1px solid #ded8cc;
-    border-radius: 8px;
-    padding: 16px;
-  }
-  .item strong { display: block; margin-bottom: 6px; }
-  .item span { color: #655c51; }
-  footer {
-    padding-top: 26px;
-    color: #71675c;
-    font-size: 14px;
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f3eadc">
+  <meta name="description" content="障害者支援施設での食事選択を支援する、マーカー不要の3D・AR比較ツールです。">
+  <title>食事をARでくらべる | ひかり意思決定支援</title>
+  <link rel="stylesheet" href="markerless-ar.css?v=20260715-3">
+  <script type="module" src="vendor/model-viewer-4.3.1.min.js"></script>
+  <script defer src="real_models.js?v=20260715-3"></script>
+  <script defer src="markerless-models.js?v=20260715-3"></script>
+  <script defer src="menu_data.js?v=20260715-3"></script>
+  <script defer src="glb-pair-composer.js?v=20260715-3"></script>
+  <script defer src="markerless-ar.js?v=20260715-3"></script>
 </head>
 <body>
-<main>
-  <section class="hero">
-    <span class="eyebrow">意思決定支援 / 食事選択 / WebAR</span>
-    <h1>選ぶ楽しみを、見てわかる形にする。</h1>
-    <p class="lead">障害者支援施設での食事選択を支えるための静的Webアプリです。50メニュー・14カテゴリから2個を選び、WebAR、3D立体、印刷カード、アニメメニューで提示できます。</p>
-    <div class="actions">
-      <a class="primary" href="select.html">選択支援メニューを開く</a>
-      <a class="secondary" href="webar.html">WebARを直接開く</a>
-      <a class="secondary" href="マーカー印刷.html">マーカー印刷</a>
+  <a class="skip-link" href="#menuGrid">料理一覧へ移動</a>
+
+  <header class="site-header">
+    <div>
+      <p class="eyebrow">食事の意思決定支援</p>
+      <h1>食事を立体でくらべる</h1>
     </div>
-  </section>
+    <button class="quiet-button" id="helpButton" type="button">使い方</button>
+  </header>
 
-  <section class="summary" aria-label="機能概要">
-    <div class="item"><strong>選択</strong><span>50メニューから2個を選び、状態を端末に保存します。</span></div>
-    <div class="item"><strong>提示</strong><span>WebAR、3D立体、印刷カード、アニメメニューに切り替えられます。</span></div>
-    <div class="item"><strong>運用</strong><span>HTML、CSS、JavaScriptだけで動く完全静的サイトです。</span></div>
-    <div class="item"><strong>AR</strong><span>A-FrameとAR.jsを使い、Hiroマーカーで料理を立体表示します。</span></div>
-  </section>
+  <div class="browser-notice" id="browserNotice" hidden>
+    <strong>SafariまたはChromeで開いてください</strong>
+    <span>LINEなどの中で開くとARが起動しにくい場合があります。</span>
+    <button id="copyUrlButton" type="button">URLをコピー</button>
+  </div>
 
-  <footer>v4 点検版: 文字化け除去と主要画面の動作確認を優先した版です。</footer>
-</main>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>障害者支援施設の意思決定支援用WebARツール</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
-<script src="error_guard.js"></script>
-<style>
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: 'Zen Maru Gothic', sans-serif;
-    background: #f7f4ee;
-    color: #2f2a24;
-  }
-  main {
-    max-width: 1080px;
-    margin: 0 auto;
-    padding: clamp(22px, 5vw, 56px);
-  }
-  .hero {
-    min-height: 72vh;
-    display: grid;
-    align-content: center;
-    gap: 22px;
-  }
-  .eyebrow {
-    display: inline-flex;
-    width: fit-content;
-    border: 1px solid #cfc7bb;
-    border-radius: 999px;
-    padding: 7px 12px;
-    color: #5f554b;
-    font-weight: 700;
-    background: #fff;
-  }
-  h1 {
-    margin: 0;
-    font-size: clamp(32px, 7vw, 68px);
-    line-height: 1.12;
-    max-width: 900px;
-  }
-  .lead {
-    margin: 0;
-    max-width: 780px;
-    color: #5f554b;
-    font-size: clamp(16px, 2.5vw, 21px);
-    line-height: 1.8;
-  }
-  .actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  a {
-    color: inherit;
-  }
-  .primary, .secondary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 52px;
-    padding: 12px 18px;
-    border-radius: 8px;
-    font-weight: 900;
-    text-decoration: none;
-  }
-  .primary { background: #2f6f73; color: #fff; }
-  .secondary { background: #fff; border: 1px solid #d8d0c4; }
-  .summary {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 12px;
-  }
-  .item {
-    background: #fff;
-    border: 1px solid #ded8cc;
-    border-radius: 8px;
-    padding: 16px;
-  }
-  .item strong { display: block; margin-bottom: 6px; }
-  .item span { color: #655c51; }
-  footer {
-    padding-top: 26px;
-    color: #71675c;
-    font-size: 14px;
-  }
-</style>
-</head>
-<body>
-<main>
-  <section class="hero">
-    <span class="eyebrow">意思決定支援 / 食事選択 / WebAR</span>
-    <h1>選ぶ楽しみを、見てわかる形にする。</h1>
-    <p class="lead">障害者支援施設での食事選択を支えるための静的Webアプリです。50メニュー・14カテゴリから1〜3個を選び、WebAR、3D立体、印刷カード、アニメメニューで提示できます。</p>
-    <div class="actions">
-      <a class="primary" href="select.html">選択支援メニューを開く</a>
-      <a class="secondary" href="webar.html">WebARを直接開く</a>
-      <a class="secondary" href="マーカー印刷.html">マーカー印刷</a>
+  <main class="app-layout">
+    <section class="viewer-panel" aria-labelledby="comparisonTitle">
+      <div class="viewer-heading">
+        <div>
+          <p class="step-label">選んだ2品</p>
+          <h2 id="comparisonTitle">机の上に並べて確認</h2>
+        </div>
+        <span class="mode-badge">マーカー不要</span>
+      </div>
+
+      <div class="viewer-stage">
+        <model-viewer
+          id="pairViewer"
+          src="assets/models_high_quality/miso_ramen.glb"
+          alt="味噌ラーメンと牛丼の立体比較"
+          ar
+          ar-modes="webxr scene-viewer quick-look"
+          ar-placement="floor"
+          ar-scale="fixed"
+          camera-controls
+          touch-action="pan-y"
+          interaction-prompt="auto"
+          camera-orbit="0deg 62deg 1.25m"
+          min-camera-orbit="auto 25deg .6m"
+          max-camera-orbit="auto 88deg 2.4m"
+          field-of-view="28deg"
+          shadow-intensity="1"
+          shadow-softness=".85"
+          exposure="1.08"
+          loading="eager">
+          <button class="ar-button" id="arButton" slot="ar-button" type="button">
+            <span aria-hidden="true" class="ar-button-mark"></span>
+            ARで机に表示
+          </button>
+          <div class="progress" slot="progress-bar" aria-hidden="true">
+            <span id="progressBar"></span>
+          </div>
+        </model-viewer>
+
+        <div class="viewer-message" id="viewerMessage" role="status" aria-live="polite">
+          2品の立体を準備しています
+        </div>
+      </div>
+
+      <div class="choice-pair" aria-label="比較する料理">
+        <button class="choice-slot active" type="button" data-choice-index="0">
+          <span>候補 1</span>
+          <strong id="choiceName0">味噌ラーメン</strong>
+          <small>変更する</small>
+        </button>
+        <div class="versus" aria-hidden="true">と</div>
+        <button class="choice-slot" type="button" data-choice-index="1">
+          <span>候補 2</span>
+          <strong id="choiceName1">牛丼</strong>
+          <small>変更する</small>
+        </button>
+      </div>
+
+      <p class="device-note" id="deviceNote">PCでは指やマウスで回して確認できます。スマートフォンではARも使えます。</p>
+    </section>
+
+    <section class="menu-panel" aria-labelledby="menuTitle">
+      <div class="menu-heading">
+        <div>
+          <p class="step-label" id="targetLabel">候補1を選択中</p>
+          <h2 id="menuTitle">料理を選ぶ</h2>
+        </div>
+        <label class="search-box">
+          <span class="sr-only">料理を検索</span>
+          <input id="searchInput" type="search" inputmode="search" placeholder="料理名で探す" autocomplete="off">
+        </label>
+      </div>
+
+      <div class="category-strip" id="categoryStrip" aria-label="料理カテゴリ"></div>
+      <div class="menu-count" id="menuCount" aria-live="polite"></div>
+      <div class="menu-grid" id="menuGrid"></div>
+    </section>
+  </main>
+
+  <dialog class="help-dialog" id="helpDialog">
+    <div class="dialog-head">
+      <h2>使い方</h2>
+      <button id="closeHelpButton" type="button" aria-label="使い方を閉じる">閉じる</button>
     </div>
-  </section>
+    <ol>
+      <li>候補1と候補2の料理を選びます。</li>
+      <li>「ARで机に表示」を押します。</li>
+      <li>机をゆっくり映し、端末の案内に沿って置きます。</li>
+      <li>端末を動かすと、横や斜めから立体を確認できます。</li>
+    </ol>
+    <p>ARが使えない端末でも、この画面で3Dを回して確認できます。印刷マーカーは必要ありません。</p>
+  </dialog>
 
-  <section class="summary" aria-label="機能概要">
-    <div class="item"><strong>選択</strong><span>50メニューから1〜3個を選び、状態を端末に保存します。</span></div>
-    <div class="item"><strong>提示</strong><span>WebAR、3D立体、印刷カード、アニメメニューに切り替えられます。</span></div>
-    <div class="item"><strong>運用</strong><span>HTML、CSS、JavaScriptだけで動く完全静的サイトです。</span></div>
-    <div class="item"><strong>AR</strong><span>A-FrameとAR.jsを使い、Hiroマーカーで料理を立体表示します。</span></div>
-  </section>
-
-  <footer>v4 点検版: 文字化け除去と主要画面の動作確認を優先した版です。</footer>
-</main>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>障害者支援施設の意思決定支援用WebARツール</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
-<script src="error_guard.js"></script>
-<style>
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: 'Zen Maru Gothic', sans-serif;
-    background: #f7f4ee;
-    color: #2f2a24;
-  }
-  main {
-    max-width: 1080px;
-    margin: 0 auto;
-    padding: clamp(22px, 5vw, 56px);
-  }
-  .hero {
-    min-height: 72vh;
-    display: grid;
-    align-content: center;
-    gap: 22px;
-  }
-  .eyebrow {
-    display: inline-flex;
-    width: fit-content;
-    border: 1px solid #cfc7bb;
-    border-radius: 999px;
-    padding: 7px 12px;
-    color: #5f554b;
-    font-weight: 700;
-    background: #fff;
-  }
-  h1 {
-    margin: 0;
-    font-size: clamp(32px, 7vw, 68px);
-    line-height: 1.12;
-    max-width: 900px;
-  }
-  .lead {
-    margin: 0;
-    max-width: 780px;
-    color: #5f554b;
-    font-size: clamp(16px, 2.5vw, 21px);
-    line-height: 1.8;
-  }
-  .actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  a {
-    color: inherit;
-  }
-  .primary, .secondary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 52px;
-    padding: 12px 18px;
-    border-radius: 8px;
-    font-weight: 900;
-    text-decoration: none;
-  }
-  .primary { background: #2f6f73; color: #fff; }
-  .secondary { background: #fff; border: 1px solid #d8d0c4; }
-  .summary {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 12px;
-  }
-  .item {
-    background: #fff;
-    border: 1px solid #ded8cc;
-    border-radius: 8px;
-    padding: 16px;
-  }
-  .item strong { display: block; margin-bottom: 6px; }
-  .item span { color: #655c51; }
-  footer {
-    padding-top: 26px;
-    color: #71675c;
-    font-size: 14px;
-  }
-</style>
-</head>
-<body>
-<main>
-  <section class="hero">
-    <span class="eyebrow">意思決定支援 / 食事選択 / WebAR</span>
-    <h1>選ぶ楽しみを、見てわかる形にする。</h1>
-    <p class="lead">障害者支援施設での食事選択を支えるための静的Webアプリです。50メニュー・14カテゴリから1〜3個を選び、WebAR、3D立体、印刷カード、アニメメニューで提示できます。</p>
-    <div class="actions">
-      <a class="primary" href="選択支援メニュー.html">選択支援メニューを開く</a>
-      <a class="secondary" href="WebAR本番.html">WebARを直接開く</a>
-      <a class="secondary" href="マーカー印刷.html">マーカー印刷</a>
-    </div>
-  </section>
-
-  <section class="summary" aria-label="機能概要">
-    <div class="item"><strong>選択</strong><span>50メニューから1〜3個を選び、状態を端末に保存します。</span></div>
-    <div class="item"><strong>提示</strong><span>WebAR、3D立体、印刷カード、アニメメニューに切り替えられます。</span></div>
-    <div class="item"><strong>運用</strong><span>HTML、CSS、JavaScriptだけで動く完全静的サイトです。</span></div>
-    <div class="item"><strong>AR</strong><span>A-FrameとAR.jsを使い、Hiroマーカーで料理を立体表示します。</span></div>
-  </section>
-
-  <footer>v4 点検版: 文字化け除去と主要画面の動作確認を優先した版です。</footer>
-</main>
+  <noscript><p class="noscript">この画面にはJavaScriptが必要です。</p></noscript>
 </body>
 </html>
