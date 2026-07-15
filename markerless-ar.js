@@ -6,6 +6,7 @@
     'shoyu_ramen', 'miso_ramen', 'gyudon', 'katsudon', 'beef_curry',
     'hamburg_steak', 'omurice', 'fried_chicken_plate', 'udon', 'spaghetti'
   ];
+  const MAX_MENU_PREVIEWS = 4;
   const items = Array.isArray(window.MENU_ITEMS) ? window.MENU_ITEMS : [];
   const categories = Array.isArray(window.MENU_CATEGORIES) ? window.MENU_CATEGORIES : [];
   const byId = new Map(items.map((item) => [item.id, item]));
@@ -33,6 +34,7 @@
   let pairLoadRevision = 0;
   let pairObjectUrl = '';
   let menuPreviewObserver = null;
+  let visibleMenuPreviews = new Set();
   let selected = readSelection();
 
   function readSelection() {
@@ -179,6 +181,9 @@
 
   function hydrateMenuPreview(container) {
     if (container.dataset.hydrated === 'true') return;
+    if (!container.dataset.loadingLabel) {
+      container.dataset.loadingLabel = container.getAttribute('aria-label') || `${container.dataset.modelAlt}を準備中`;
+    }
     const model = document.createElement('model-viewer');
     const attributes = {
       src: container.dataset.modelUrl,
@@ -201,21 +206,43 @@
     container.replaceChildren(model);
   }
 
+  function dehydrateMenuPreview(container) {
+    if (container.dataset.hydrated !== 'true') return;
+    container.dataset.hydrated = 'false';
+    container.setAttribute('role', 'img');
+    container.setAttribute('aria-label', container.dataset.loadingLabel || `${container.dataset.modelAlt}を準備中`);
+    container.replaceChildren();
+  }
+
   function hydrateVisibleMenuPreviews() {
     if (menuPreviewObserver) menuPreviewObserver.disconnect();
     const previews = menuGrid.querySelectorAll('.menu-model');
+    visibleMenuPreviews = new Set();
     if (!('IntersectionObserver' in window)) {
-      previews.forEach(hydrateMenuPreview);
+      Array.from(previews).slice(0, MAX_MENU_PREVIEWS).forEach(hydrateMenuPreview);
       return;
     }
-    // Keep the 2-choice viewer responsive by creating card previews only near the viewport.
+    // Keep iPhone memory stable by retaining card previews only near the viewport.
     menuPreviewObserver = new window.IntersectionObserver((entries) => {
       entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        hydrateMenuPreview(entry.target);
-        menuPreviewObserver.unobserve(entry.target);
+        if (entry.isIntersecting) visibleMenuPreviews.add(entry.target);
+        else visibleMenuPreviews.delete(entry.target);
       });
-    }, { rootMargin: '240px 0px' });
+      const viewportCenter = window.innerHeight / 2;
+      const keep = new Set([...visibleMenuPreviews]
+        .sort((left, right) => {
+          const leftBox = left.getBoundingClientRect();
+          const rightBox = right.getBoundingClientRect();
+          const leftDistance = Math.abs((leftBox.top + leftBox.bottom) / 2 - viewportCenter);
+          const rightDistance = Math.abs((rightBox.top + rightBox.bottom) / 2 - viewportCenter);
+          return leftDistance - rightDistance;
+        })
+        .slice(0, MAX_MENU_PREVIEWS));
+      previews.forEach((preview) => {
+        if (keep.has(preview)) hydrateMenuPreview(preview);
+        else dehydrateMenuPreview(preview);
+      });
+    }, { rootMargin: '160px 0px' });
     previews.forEach((preview) => menuPreviewObserver.observe(preview));
   }
 
@@ -256,7 +283,7 @@
     selected[activeChoice] = id;
     activeChoice = otherIndex;
     refreshPair();
-    document.querySelector('.viewer-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.querySelector('.viewer-panel').scrollIntoView({ behavior: 'auto', block: 'start' });
   }
 
   function updateArAvailability() {
@@ -314,7 +341,7 @@
       activeChoice = Number(button.dataset.choiceIndex);
       updateChoiceButtons();
       renderMenu();
-      document.getElementById('menuTitle').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('menuTitle').scrollIntoView({ behavior: 'auto', block: 'start' });
     });
   });
 
