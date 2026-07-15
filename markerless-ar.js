@@ -32,6 +32,7 @@
   let localPairAttempted = false;
   let pairLoadRevision = 0;
   let pairObjectUrl = '';
+  let menuPreviewObserver = null;
   let selected = readSelection();
 
   function readSelection() {
@@ -78,7 +79,9 @@
   function replaceViewerSource(url, ownsObjectUrl = false) {
     if (pairObjectUrl && pairObjectUrl !== url) URL.revokeObjectURL(pairObjectUrl);
     pairObjectUrl = ownsObjectUrl ? url : '';
-    viewer.src = url;
+    // Attributes survive a late <model-viewer> custom-element upgrade; expando
+    // properties set before registration can otherwise be replaced by HTML defaults.
+    viewer.setAttribute('src', url);
   }
 
   async function loadLocalPair(revision) {
@@ -128,7 +131,7 @@
     const revision = ++pairLoadRevision;
     pairFallbackActive = false;
     localPairAttempted = false;
-    viewer.alt = `${left.name}と${right.name}を並べた立体比較`;
+    viewer.setAttribute('alt', `${left.name}と${right.name}を並べた立体比較`);
     progressBar.style.width = '0%';
     setMessage(`${left.name}と${right.name}の立体を準備しています`);
     if (preferLocalPair && composer) {
@@ -174,10 +177,53 @@
     });
   }
 
+  function hydrateMenuPreview(container) {
+    if (container.dataset.hydrated === 'true') return;
+    const model = document.createElement('model-viewer');
+    const attributes = {
+      src: container.dataset.modelUrl,
+      alt: container.dataset.modelAlt,
+      loading: 'eager',
+      reveal: 'auto',
+      'interaction-prompt': 'none',
+      'camera-orbit': '20deg 62deg 3.1m',
+      'field-of-view': '30deg',
+      exposure: '1.05',
+      'shadow-intensity': '.55',
+      'shadow-softness': '1',
+      'disable-pan': '',
+      'disable-zoom': ''
+    };
+    Object.entries(attributes).forEach(([name, value]) => model.setAttribute(name, value));
+    container.dataset.hydrated = 'true';
+    container.removeAttribute('role');
+    container.removeAttribute('aria-label');
+    container.replaceChildren(model);
+  }
+
+  function hydrateVisibleMenuPreviews() {
+    if (menuPreviewObserver) menuPreviewObserver.disconnect();
+    const previews = menuGrid.querySelectorAll('.menu-model');
+    if (!('IntersectionObserver' in window)) {
+      previews.forEach(hydrateMenuPreview);
+      return;
+    }
+    // Keep the 2-choice viewer responsive by creating card previews only near the viewport.
+    menuPreviewObserver = new window.IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        hydrateMenuPreview(entry.target);
+        menuPreviewObserver.unobserve(entry.target);
+      });
+    }, { rootMargin: '240px 0px' });
+    previews.forEach((preview) => menuPreviewObserver.observe(preview));
+  }
+
   function renderMenu() {
     const visible = filteredItems();
     menuCount.textContent = `${visible.length}品を表示しています（全${items.length}品）`;
     if (!visible.length) {
+      if (menuPreviewObserver) menuPreviewObserver.disconnect();
       menuGrid.innerHTML = '<p>条件に合う料理がありません。</p>';
       return;
     }
@@ -188,25 +234,14 @@
       return `
         <button class="menu-card${selectedIndex !== -1 ? ' selected' : ''}" type="button" data-menu-id="${item.id}" aria-disabled="${duplicate}">
           ${quality}
-          <model-viewer
-            src="${item.modelUrl}"
-            alt="${item.name}の立体"
-            loading="lazy"
-            reveal="auto"
-            interaction-prompt="none"
-            camera-orbit="20deg 62deg 3.1m"
-            field-of-view="30deg"
-            exposure="1.05"
-            shadow-intensity=".55"
-            shadow-softness="1"
-            disable-pan
-            disable-zoom></model-viewer>
+          <span class="menu-model" data-model-url="${item.modelUrl}" data-model-alt="${item.name}の立体" role="img" aria-label="${item.name}の3Dを準備中"></span>
           <span class="menu-card-text">
             <strong>${item.name}</strong>
             <span>${item.categoryLabel}</span>
           </span>
         </button>`;
     }).join('');
+    hydrateVisibleMenuPreviews();
     menuGrid.querySelectorAll('.menu-card').forEach((button) => {
       button.addEventListener('click', () => chooseItem(button.dataset.menuId));
     });
@@ -316,6 +351,7 @@
   });
 
   window.addEventListener('pagehide', () => {
+    if (menuPreviewObserver) menuPreviewObserver.disconnect();
     if (pairObjectUrl) URL.revokeObjectURL(pairObjectUrl);
   });
 })();
