@@ -4,6 +4,8 @@
   const JSON_CHUNK = 0x4e4f534a;
   const BIN_CHUNK = 0x004e4942;
   const GLB_MAGIC = 0x46546c67;
+  const PAIR_MODEL_SCALE = 0.095;
+  const PAIR_CENTER_OFFSET = 0.145;
 
   function clone(value) {
     return value == null ? value : JSON.parse(JSON.stringify(value));
@@ -34,7 +36,7 @@
         const text = new TextDecoder().decode(bytes.subarray(start, end)).replace(/\u0000+$/g, '').trimEnd();
         json = JSON.parse(text);
       } else if (type === BIN_CHUNK) {
-        binary = bytes.slice(start, end);
+        binary = new Uint8Array(bytes.subarray(start, end));
       }
       cursor = end;
     }
@@ -56,8 +58,59 @@
     return output;
   }
 
+  function bakeSourceGeometry(source, sourceIndex) {
+    const json = clone(source.json);
+    const binary = new Uint8Array(source.binary);
+    const view = new DataView(binary.buffer, binary.byteOffset, binary.byteLength);
+    const translatedX = sourceIndex === 0 ? -PAIR_CENTER_OFFSET : PAIR_CENTER_OFFSET;
+    const positionAccessors = new Set();
+
+    for (const mesh of json.meshes || []) {
+      for (const primitive of mesh.primitives || []) {
+        if (Number.isInteger(primitive.attributes?.POSITION)) {
+          positionAccessors.add(primitive.attributes.POSITION);
+        }
+      }
+    }
+
+    const sourceMinY = Math.min(...[...positionAccessors].map((accessorIndex) => {
+      const accessor = json.accessors?.[accessorIndex];
+      if (!accessor?.min || !Number.isFinite(accessor.min[1])) {
+        throw new Error('Pair models require POSITION bounds');
+      }
+      return accessor.min[1];
+    }));
+    const translatedY = -sourceMinY * PAIR_MODEL_SCALE;
+
+    for (const accessorIndex of positionAccessors) {
+      const accessor = json.accessors?.[accessorIndex];
+      const bufferView = json.bufferViews?.[accessor?.bufferView];
+      if (!accessor || !bufferView || accessor.sparse || accessor.componentType !== 5126 || accessor.type !== 'VEC3') {
+        throw new Error('Pair models require non-sparse Float32 VEC3 positions');
+      }
+      const stride = bufferView.byteStride || 12;
+      const start = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
+      const min = [Infinity, Infinity, Infinity];
+      const max = [-Infinity, -Infinity, -Infinity];
+      for (let vertexIndex = 0; vertexIndex < accessor.count; vertexIndex += 1) {
+        const offset = start + vertexIndex * stride;
+        for (let axis = 0; axis < 3; axis += 1) {
+          const value = view.getFloat32(offset + axis * 4, true) * PAIR_MODEL_SCALE
+            + (axis === 0 ? translatedX : axis === 1 ? translatedY : 0);
+          view.setFloat32(offset + axis * 4, value, true);
+          min[axis] = Math.min(min[axis], value);
+          max[axis] = Math.max(max[axis], value);
+        }
+      }
+      accessor.min = min;
+      accessor.max = max;
+    }
+    return { json, binary };
+  }
+
   function mergeGlbs(leftInput, rightInput, options = {}) {
-    const sources = [parseGlb(leftInput), parseGlb(rightInput)];
+    const sources = [parseGlb(leftInput), parseGlb(rightInput)]
+      .map((source, sourceIndex) => bakeSourceGeometry(source, sourceIndex));
     const ids = [options.leftId || 'left', options.rightId || 'right'];
     const output = {
       asset: { version: '2.0', generator: 'Hikari client two-choice composer' },
@@ -188,9 +241,7 @@
       const parentIndex = output.nodes.length;
       output.nodes.push({
         name: ids[sourceIndex],
-        children: sceneNodes,
-        translation: [sourceIndex === 0 ? -0.19 : 0.19, 0, 0],
-        scale: [0.13, 0.13, 0.13]
+        children: sceneNodes
       });
       output.scenes[0].nodes.push(parentIndex);
     });

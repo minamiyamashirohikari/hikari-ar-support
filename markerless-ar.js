@@ -13,7 +13,8 @@
   const qualityIds = window.HIKARI_HIGH_QUALITY_IDS || new Set();
   const fallbackIds = ['miso_ramen', 'gyudon'];
   const composer = window.HIKARI_GLB_COMPOSER;
-  const preferLocalPair = location.hostname.endsWith('.github.io') || location.protocol === 'file:';
+  // Use the same on-device composition path in development and on GitHub Pages.
+  const preferLocalPair = Boolean(composer);
   const modelBufferCache = new Map();
 
   const viewer = document.getElementById('pairViewer');
@@ -33,6 +34,11 @@
   let localPairAttempted = false;
   let pairLoadRevision = 0;
   let pairObjectUrl = '';
+  let expectedViewerSource = '';
+  let expectedViewerRevision = 0;
+  let viewerLoadTimer = 0;
+  let viewerReady = false;
+  let pairModelReady = false;
   let menuPreviewObserver = null;
   let visibleMenuPreviews = new Set();
   let selected = readSelection();
@@ -53,17 +59,37 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(selected));
   }
 
-  function pairUrl() {
+  function pairUrl(revision) {
     const url = new URL('api/pair.glb', document.baseURI);
     url.searchParams.set('left', selected[0]);
     url.searchParams.set('right', selected[1]);
+    url.searchParams.set('request', String(revision));
     return url.href;
+  }
+
+  function normalizedModelUrl(url) {
+    try {
+      return new URL(url, document.baseURI).href;
+    } catch (_) {
+      return String(url || '');
+    }
+  }
+
+  function clearViewerLoadTimer() {
+    if (!viewerLoadTimer) return;
+    window.clearTimeout(viewerLoadTimer);
+    viewerLoadTimer = 0;
   }
 
   async function modelBytes(id) {
     if (!modelBufferCache.has(id)) {
       const item = byId.get(id);
-      const request = fetch(new URL(item.modelUrl, document.baseURI), { cache: 'force-cache' })
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 15000);
+      const request = fetch(new URL(item.modelUrl, document.baseURI), {
+        cache: 'force-cache',
+        signal: controller.signal
+      })
         .then((response) => {
           if (!response.ok) throw new Error(`Model unavailable: ${id}`);
           return response.arrayBuffer();
@@ -72,18 +98,27 @@
         .catch((error) => {
           modelBufferCache.delete(id);
           throw error;
-        });
+        })
+        .finally(() => window.clearTimeout(timeout));
       modelBufferCache.set(id, request);
     }
     return modelBufferCache.get(id);
   }
 
-  function replaceViewerSource(url, ownsObjectUrl = false) {
+  function replaceViewerSource(url, ownsObjectUrl = false, revision = pairLoadRevision) {
     if (pairObjectUrl && pairObjectUrl !== url) URL.revokeObjectURL(pairObjectUrl);
     pairObjectUrl = ownsObjectUrl ? url : '';
-    // Attributes survive a late <model-viewer> custom-element upgrade; expando
-    // properties set before registration can otherwise be replaced by HTML defaults.
+    expectedViewerSource = normalizedModelUrl(url);
+    expectedViewerRevision = revision;
+    pairModelReady = false;
+    viewer.setAttribute('aria-busy', 'true');
+    updateArAvailability();
     viewer.setAttribute('src', url);
+    clearViewerLoadTimer();
+    viewerLoadTimer = window.setTimeout(() => {
+      if (revision !== pairLoadRevision || revision !== expectedViewerRevision || pairModelReady) return;
+      handleViewerFailure('timeout');
+    }, 20000);
   }
 
   async function loadLocalPair(revision) {
@@ -102,11 +137,11 @@
         URL.revokeObjectURL(objectUrl);
         return;
       }
-      replaceViewerSource(objectUrl, true);
+      replaceViewerSource(objectUrl, true, revision);
     } catch (_) {
       if (revision !== pairLoadRevision) return;
       pairFallbackActive = true;
-      replaceViewerSource(byId.get(selected[0]).modelUrl);
+      replaceViewerSource(byId.get(selected[0]).modelUrl, false, revision);
       setMessage('2品の準備に失敗したため、候補1を安全表示しています。', 'warning');
     }
   }
@@ -136,10 +171,12 @@
     viewer.setAttribute('alt', `${left.name}と${right.name}を並べた立体比較`);
     progressBar.style.width = '0%';
     setMessage(`${left.name}と${right.name}の立体を準備しています`);
-    if (preferLocalPair && composer) {
+    if (!viewerReady) {
+      arButton.hidden = true;
+    } else if (preferLocalPair && composer) {
       loadLocalPair(revision);
     } else {
-      replaceViewerSource(pairUrl());
+      replaceViewerSource(pairUrl(revision), false, revision);
     }
     updateChoiceButtons();
     saveSelection();
@@ -287,6 +324,11 @@
   }
 
   function updateArAvailability() {
+    if (!viewerReady || !pairModelReady) {
+      arButton.hidden = true;
+      deviceNote.textContent = '選んだ2品の立体を準備しています。';
+      return;
+    }
     const supported = Boolean(viewer.canActivateAR);
     arButton.hidden = !supported;
     if (supported) {
@@ -302,7 +344,12 @@
     if (progress >= 1) progressBar.style.width = '0%';
   });
 
-  viewer.addEventListener('load', () => {
+  viewer.addEventListener('load', (event) => {
+    const loadedSource = normalizedModelUrl(event.detail?.url);
+    if (!loadedSource || loadedSource !== expectedViewerSource || expectedViewerRevision !== pairLoadRevision) return;
+    clearViewerLoadTimer();
+    pairModelReady = true;
+    viewer.setAttribute('aria-busy', 'false');
     const left = byId.get(selected[0]);
     const right = byId.get(selected[1]);
     setMessage(pairFallbackActive
@@ -311,7 +358,9 @@
     updateArAvailability();
   });
 
-  viewer.addEventListener('error', () => {
+  function handleViewerFailure(reason = 'error') {
+    if (expectedViewerRevision !== pairLoadRevision || pairModelReady) return;
+    clearViewerLoadTimer();
     if (!localPairAttempted && composer) {
       setMessage('端末内で2品の立体を準備し直しています', 'warning');
       loadLocalPair(pairLoadRevision);
@@ -319,11 +368,22 @@
     }
     if (!pairFallbackActive) {
       pairFallbackActive = true;
-      replaceViewerSource(byId.get(selected[0]).modelUrl);
+      replaceViewerSource(byId.get(selected[0]).modelUrl, false, pairLoadRevision);
       setMessage('2品の読み込みに失敗したため、候補1を安全表示しています。', 'warning');
       return;
     }
-    setMessage('3Dを読み込めませんでした。通信を確認して再読み込みしてください。', 'error');
+    viewer.setAttribute('aria-busy', 'false');
+    setMessage(reason === 'timeout'
+      ? '3Dの準備に時間がかかっています。通信を確認して再読み込みしてください。'
+      : '3Dを読み込めませんでした。通信を確認して再読み込みしてください。', 'error');
+  }
+
+  viewer.addEventListener('error', (event) => {
+    const failedUrl = event.detail?.sourceError?.target?.responseURL
+      || event.detail?.sourceError?.url
+      || '';
+    if (failedUrl && normalizedModelUrl(failedUrl) !== expectedViewerSource) return;
+    handleViewerFailure('error');
   });
 
   viewer.addEventListener('ar-status', (event) => {
@@ -373,12 +433,15 @@
   refreshPair();
 
   customElements.whenDefined('model-viewer').then(() => {
+    viewerReady = true;
+    refreshPair();
     updateArAvailability();
     window.setTimeout(updateArAvailability, 1200);
   });
 
   window.addEventListener('pagehide', () => {
     if (menuPreviewObserver) menuPreviewObserver.disconnect();
+    clearViewerLoadTimer();
     if (pairObjectUrl) URL.revokeObjectURL(pairObjectUrl);
   });
 })();

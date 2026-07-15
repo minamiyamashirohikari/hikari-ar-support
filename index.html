@@ -9,10 +9,10 @@
   <link rel="stylesheet" href="markerless-ar.css?v=20260715-4">
   <script type="module" src="vendor/model-viewer-4.3.1.min.js"></script>
   <script defer src="real_models.js?v=20260715-3"></script>
-  <script defer src="markerless-models.js?v=20260715-all50-ios1"></script>
+  <script defer src="markerless-models.js?v=20260715-iphone-ar2"></script>
   <script defer src="menu_data.js?v=20260715-3"></script>
-  <script defer src="glb-pair-composer.js?v=20260715-3"></script>
-  <script defer src="markerless-ar.js?v=20260715-all50-ios3"></script>
+  <script defer src="glb-pair-composer.js?v=20260715-iphone-ar2"></script>
+  <script defer src="markerless-ar.js?v=20260715-iphone-ar3"></script>
 </head>
 <body>
   <a class="skip-link" href="#menuGrid">料理一覧へ移動</a>
@@ -44,12 +44,12 @@
       <div class="viewer-stage">
         <model-viewer
           id="pairViewer"
-          src="assets/models_high_quality/miso_ramen.glb"
           alt="味噌ラーメンと牛丼の立体比較"
           ar
           ar-modes="webxr scene-viewer quick-look"
           ar-placement="floor"
           ar-scale="fixed"
+          ar-usdz-max-texture-size="1024"
           camera-controls
           touch-action="pan-y"
           interaction-prompt="auto"

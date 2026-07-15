@@ -3,7 +3,7 @@
     'shoyu_ramen', 'miso_ramen', 'beef_curry', 'hamburg_steak', 'omurice',
     'fried_chicken_plate', 'udon', 'gyudon', 'katsudon', 'spaghetti'
   ]);
-  const revision = '?v=20260715-all50-ios1';
+  const revision = '?v=20260715-iphone-ar2';
 
   for (const id of window.REAL_MODEL_TARGETS || []) {
     const folder = highQuality.has(id) ? 'models_high_quality' : 'models';
