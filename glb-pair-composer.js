@@ -4,8 +4,9 @@
   const JSON_CHUNK = 0x4e4f534a;
   const BIN_CHUNK = 0x004e4942;
   const GLB_MAGIC = 0x46546c67;
-  const PAIR_MODEL_SCALE = 0.095;
+  const PAIR_TARGET_SPAN_METERS = 0.22;
   const PAIR_CENTER_OFFSET = 0.145;
+  const PAIR_MODEL_YAW_DEGREES = 180;
 
   function clone(value) {
     return value == null ? value : JSON.parse(JSON.stringify(value));
@@ -64,23 +65,53 @@
     const view = new DataView(binary.buffer, binary.byteOffset, binary.byteLength);
     const translatedX = sourceIndex === 0 ? -PAIR_CENTER_OFFSET : PAIR_CENTER_OFFSET;
     const positionAccessors = new Set();
+    const normalAccessors = new Set();
+    const tangentAccessors = new Set();
 
     for (const mesh of json.meshes || []) {
       for (const primitive of mesh.primitives || []) {
         if (Number.isInteger(primitive.attributes?.POSITION)) {
           positionAccessors.add(primitive.attributes.POSITION);
         }
+        if (Number.isInteger(primitive.attributes?.NORMAL)) {
+          normalAccessors.add(primitive.attributes.NORMAL);
+        }
+        if (Number.isInteger(primitive.attributes?.TANGENT)) {
+          tangentAccessors.add(primitive.attributes.TANGENT);
+        }
       }
     }
 
-    const sourceMinY = Math.min(...[...positionAccessors].map((accessorIndex) => {
+    if (!positionAccessors.size) throw new Error('Pair models require POSITION data');
+
+    const sourceMin = [Infinity, Infinity, Infinity];
+    const sourceMax = [-Infinity, -Infinity, -Infinity];
+    for (const accessorIndex of positionAccessors) {
       const accessor = json.accessors?.[accessorIndex];
-      if (!accessor?.min || !Number.isFinite(accessor.min[1])) {
-        throw new Error('Pair models require POSITION bounds');
+      const bufferView = json.bufferViews?.[accessor?.bufferView];
+      if (!accessor || !bufferView || accessor.sparse || accessor.componentType !== 5126 || accessor.type !== 'VEC3') {
+        throw new Error('Pair models require non-sparse Float32 VEC3 positions');
       }
-      return accessor.min[1];
-    }));
-    const translatedY = -sourceMinY * PAIR_MODEL_SCALE;
+      const stride = bufferView.byteStride || 12;
+      const start = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
+      for (let vertexIndex = 0; vertexIndex < accessor.count; vertexIndex += 1) {
+        const offset = start + vertexIndex * stride;
+        for (let axis = 0; axis < 3; axis += 1) {
+          const value = view.getFloat32(offset + axis * 4, true);
+          if (!Number.isFinite(value)) throw new Error('Pair models require finite POSITION data');
+          sourceMin[axis] = Math.min(sourceMin[axis], value);
+          sourceMax[axis] = Math.max(sourceMax[axis], value);
+        }
+      }
+    }
+
+    const sourceSpan = sourceMax.map((value, axis) => value - sourceMin[axis]);
+    const horizontalSpan = Math.max(sourceSpan[0], sourceSpan[2]);
+    if (!(horizontalSpan > 0)) throw new Error('Pair models require a non-zero horizontal span');
+    const sourceScale = PAIR_TARGET_SPAN_METERS / horizontalSpan;
+    const sourceCenterX = (sourceMin[0] + sourceMax[0]) / 2;
+    const sourceCenterZ = (sourceMin[2] + sourceMax[2]) / 2;
+    const translatedY = -sourceMin[1] * sourceScale;
 
     for (const accessorIndex of positionAccessors) {
       const accessor = json.accessors?.[accessorIndex];
@@ -94,18 +125,45 @@
       const max = [-Infinity, -Infinity, -Infinity];
       for (let vertexIndex = 0; vertexIndex < accessor.count; vertexIndex += 1) {
         const offset = start + vertexIndex * stride;
+        const sourceX = view.getFloat32(offset, true);
+        const sourceY = view.getFloat32(offset + 4, true);
+        const sourceZ = view.getFloat32(offset + 8, true);
+        // Face both dishes toward the person holding the device.
+        const values = [
+          -(sourceX - sourceCenterX) * sourceScale + translatedX,
+          sourceY * sourceScale + translatedY,
+          -(sourceZ - sourceCenterZ) * sourceScale
+        ];
         for (let axis = 0; axis < 3; axis += 1) {
-          const value = view.getFloat32(offset + axis * 4, true) * PAIR_MODEL_SCALE
-            + (axis === 0 ? translatedX : axis === 1 ? translatedY : 0);
-          view.setFloat32(offset + axis * 4, value, true);
-          min[axis] = Math.min(min[axis], value);
-          max[axis] = Math.max(max[axis], value);
+          view.setFloat32(offset + axis * 4, values[axis], true);
+          min[axis] = Math.min(min[axis], values[axis]);
+          max[axis] = Math.max(max[axis], values[axis]);
         }
       }
       accessor.min = min;
       accessor.max = max;
     }
-    return { json, binary };
+
+    for (const [accessorSet, expectedType, strideFallback] of [
+      [normalAccessors, 'VEC3', 12],
+      [tangentAccessors, 'VEC4', 16]
+    ]) {
+      for (const accessorIndex of accessorSet) {
+        const accessor = json.accessors?.[accessorIndex];
+        const bufferView = json.bufferViews?.[accessor?.bufferView];
+        if (!accessor || !bufferView || accessor.sparse || accessor.componentType !== 5126 || accessor.type !== expectedType) {
+          throw new Error(`Pair models require non-sparse Float32 ${expectedType} directions`);
+        }
+        const stride = bufferView.byteStride || strideFallback;
+        const start = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
+        for (let vertexIndex = 0; vertexIndex < accessor.count; vertexIndex += 1) {
+          const offset = start + vertexIndex * stride;
+          view.setFloat32(offset, -view.getFloat32(offset, true), true);
+          view.setFloat32(offset + 8, -view.getFloat32(offset + 8, true), true);
+        }
+      }
+    }
+    return { json, binary, sourceScale };
   }
 
   function mergeGlbs(leftInput, rightInput, options = {}) {
@@ -241,7 +299,12 @@
       const parentIndex = output.nodes.length;
       output.nodes.push({
         name: ids[sourceIndex],
-        children: sceneNodes
+        children: sceneNodes,
+        extras: {
+          hikariCanonicalYawDegrees: PAIR_MODEL_YAW_DEGREES,
+          hikariTargetSpanMeters: PAIR_TARGET_SPAN_METERS,
+          hikariSourceScale: source.sourceScale
+        }
       });
       output.scenes[0].nodes.push(parentIndex);
     });

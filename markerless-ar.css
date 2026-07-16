@@ -322,7 +322,7 @@ h2 { margin-bottom: 0; font-size: clamp(20px, 2.5vw, 29px); letter-spacing: -.03
 .menu-card-text { display: grid; gap: 3px; padding: 10px 11px 12px; }
 .menu-card-text strong { overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
 .menu-card-text span { overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.quality-mark { position: absolute; z-index: 2; top: 7px; right: 7px; border-radius: 99px; padding: 4px 7px; color: #fff; background: rgba(14,77,80,.88); font-size: 10px; font-weight: 900; }
+.ios-orientation-note { margin: 10px 0 0; border: 2px solid #c56c2f; border-radius: 12px; padding: 10px 12px; color: #5d2e11; background: #fff4df; font-weight: 800; line-height: 1.55; }
 
 .help-dialog {
   width: min(560px, calc(100% - 28px));

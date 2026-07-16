@@ -10,7 +10,6 @@
   const items = Array.isArray(window.MENU_ITEMS) ? window.MENU_ITEMS : [];
   const categories = Array.isArray(window.MENU_CATEGORIES) ? window.MENU_CATEGORIES : [];
   const byId = new Map(items.map((item) => [item.id, item]));
-  const qualityIds = window.HIKARI_HIGH_QUALITY_IDS || new Set();
   const fallbackIds = ['miso_ramen', 'gyudon'];
   const composer = window.HIKARI_GLB_COMPOSER;
   // Use the same on-device composition path in development and on GitHub Pages.
@@ -27,6 +26,9 @@
   const searchInput = document.getElementById('searchInput');
   const targetLabel = document.getElementById('targetLabel');
   const progressBar = document.getElementById('progressBar');
+  const iosOrientationNote = document.getElementById('iosOrientationNote');
+  const isIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
   let activeChoice = 0;
   let activeCategory = 'favorites';
@@ -294,10 +296,8 @@
     menuGrid.innerHTML = visible.map((item) => {
       const selectedIndex = selected.indexOf(item.id);
       const duplicate = selectedIndex !== -1 && selectedIndex !== activeChoice;
-      const quality = qualityIds.has(item.id) ? '<span class="quality-mark">写真質感</span>' : '';
       return `
         <button class="menu-card${selectedIndex !== -1 ? ' selected' : ''}" type="button" data-menu-id="${item.id}" aria-disabled="${duplicate}">
-          ${quality}
           <span class="menu-model" data-model-url="${item.modelUrl}" data-model-alt="${item.name}の立体" role="img" aria-label="${item.name}の3Dを準備中"></span>
           <span class="menu-card-text">
             <strong>${item.name}</strong>
@@ -332,7 +332,9 @@
     const supported = Boolean(viewer.canActivateAR);
     arButton.hidden = !supported;
     if (supported) {
-      deviceNote.textContent = '「ARで机に表示」を押し、机をゆっくり映して配置してください。マーカーは不要です。';
+      deviceNote.textContent = isIOS
+        ? 'ARを押して机を映します。横向きで使う場合は、先にiPhone・iPadの画面の向きロックを解除してください。'
+        : '「ARで机に表示」を押し、机をゆっくり映して配置してください。マーカーは不要です。';
     } else {
       deviceNote.textContent = 'この端末ではARを起動できないため、指やマウスで回せる3D表示を利用しています。';
     }
@@ -418,6 +420,7 @@
     || /FBAN|FBAV|Instagram/i.test(navigator.userAgent);
   const browserNotice = document.getElementById('browserNotice');
   browserNotice.hidden = !isEmbeddedBrowser;
+  iosOrientationNote.hidden = !isIOS;
   document.getElementById('copyUrlButton').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(location.href);

@@ -6,13 +6,13 @@
   <meta name="theme-color" content="#f3eadc">
   <meta name="description" content="障害者支援施設での食事選択を支援する、マーカー不要の3D・AR比較ツールです。">
   <title>食事をARでくらべる | ひかり意思決定支援</title>
-  <link rel="stylesheet" href="markerless-ar.css?v=20260715-4">
+  <link rel="stylesheet" href="markerless-ar.css?v=20260716-ipad2">
   <script type="module" src="vendor/model-viewer-4.3.1.min.js"></script>
   <script defer src="real_models.js?v=20260715-3"></script>
-  <script defer src="markerless-models.js?v=20260715-iphone-ar2"></script>
+  <script defer src="markerless-models.js?v=20260716-ipad2"></script>
   <script defer src="menu_data.js?v=20260715-3"></script>
-  <script defer src="glb-pair-composer.js?v=20260715-iphone-ar2"></script>
-  <script defer src="markerless-ar.js?v=20260715-iphone-ar3"></script>
+  <script defer src="glb-pair-composer.js?v=20260716-ipad2"></script>
+  <script defer src="markerless-ar.js?v=20260716-ipad2"></script>
 </head>
 <body>
   <a class="skip-link" href="#menuGrid">料理一覧へ移動</a>
@@ -89,7 +89,10 @@
         </button>
       </div>
 
-      <p class="device-note" id="deviceNote">PCでは指やマウスで回して確認できます。スマートフォンではARも使えます。</p>
+      <p class="device-note" id="deviceNote">PCでは指やマウスで回して確認できます。スマートフォン・タブレットではARも使えます。</p>
+      <p class="ios-orientation-note" id="iosOrientationNote" hidden>
+        iPhone・iPadを横向きで使うときは、コントロールセンターで「画面の向きロック」を解除してからARを開いてください。
+      </p>
     </section>
 
     <section class="menu-panel" aria-labelledby="menuTitle">
@@ -120,6 +123,7 @@
       <li>「ARで机に表示」を押します。</li>
       <li>机をゆっくり映し、端末の案内に沿って置きます。</li>
       <li>端末を動かすと、横や斜めから立体を確認できます。</li>
+      <li>iPhone・iPadを横向きで使う場合は、ARを開く前に画面の向きロックを解除します。</li>
     </ol>
     <p>ARが使えない端末でも、この画面で3Dを回して確認できます。印刷マーカーは必要ありません。</p>
   </dialog>
