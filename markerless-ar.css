@@ -52,6 +52,12 @@ button { color: inherit; }
   padding: 20px clamp(16px, 4vw, 48px) 14px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .eyebrow, .step-label {
   margin: 0 0 5px;
   color: var(--teal-dark);
@@ -66,6 +72,7 @@ h2 { margin-bottom: 0; font-size: clamp(20px, 2.5vw, 29px); letter-spacing: -.03
 
 .quiet-button,
 .help-dialog button,
+.share-dialog button,
 .browser-notice button {
   min-height: 44px;
   border: 1px solid var(--line);
@@ -190,6 +197,29 @@ h2 { margin-bottom: 0; font-size: clamp(20px, 2.5vw, 29px); letter-spacing: -.03
   border-radius: 5px;
   box-shadow: inset 0 0 0 3px var(--orange);
 }
+
+.ar-actions {
+  display: grid;
+  grid-template-columns: minmax(190px, 260px) 1fr;
+  align-items: center;
+  gap: 10px 14px;
+  margin-top: 13px;
+}
+
+.browser-ar-button {
+  min-height: 58px;
+  border: 0;
+  border-radius: 17px;
+  padding: 12px 18px;
+  color: #fff;
+  background: var(--orange);
+  box-shadow: 0 10px 28px rgba(139, 57, 28, .24);
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.browser-ar-button:disabled { opacity: .52; cursor: wait; }
+.ar-actions span { color: var(--muted); font-size: 13px; line-height: 1.55; }
 
 .viewer-message {
   position: absolute;
@@ -324,7 +354,8 @@ h2 { margin-bottom: 0; font-size: clamp(20px, 2.5vw, 29px); letter-spacing: -.03
 .menu-card-text span { overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .ios-orientation-note { margin: 10px 0 0; border: 2px solid #c56c2f; border-radius: 12px; padding: 10px 12px; color: #5d2e11; background: #fff4df; font-weight: 800; line-height: 1.55; }
 
-.help-dialog {
+.help-dialog,
+.share-dialog {
   width: min(560px, calc(100% - 28px));
   border: 0;
   border-radius: 24px;
@@ -333,10 +364,138 @@ h2 { margin-bottom: 0; font-size: clamp(20px, 2.5vw, 29px); letter-spacing: -.03
   background: var(--paper);
   box-shadow: 0 30px 90px rgba(0,0,0,.25);
 }
-.help-dialog::backdrop { background: rgba(22, 31, 30, .55); backdrop-filter: blur(5px); }
+.share-dialog { width: min(720px, calc(100% - 28px)); }
+.help-dialog::backdrop,
+.share-dialog::backdrop { background: rgba(22, 31, 30, .55); backdrop-filter: blur(5px); }
 .dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
 .help-dialog ol { padding-left: 1.5em; line-height: 1.8; }
 .help-dialog p { margin-bottom: 0; color: var(--muted); line-height: 1.7; }
+
+.share-content {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 22px;
+  margin-top: 18px;
+}
+.share-qr {
+  display: grid;
+  place-items: center;
+  min-width: 244px;
+  min-height: 244px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 12px;
+  background: #fff;
+}
+.share-qr img,
+.share-qr canvas { display: block; width: 220px; height: 220px; image-rendering: pixelated; }
+.share-details { display: grid; gap: 13px; min-width: 0; }
+.share-details p { margin: 0; color: var(--muted); line-height: 1.7; }
+.share-details a {
+  overflow-wrap: anywhere;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  color: var(--teal-dark);
+  background: #fff;
+  line-height: 1.5;
+}
+
+body.camera-ar-open { overflow: hidden; touch-action: none; }
+.camera-ar-overlay {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  overflow: hidden;
+  color: #fff;
+  background: #050908;
+  isolation: isolate;
+}
+.camera-ar-overlay[hidden] { display: none; }
+#cameraArVideo,
+.camera-ar-model-host,
+.camera-ar-shade {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+#cameraArVideo { z-index: 0; object-fit: cover; background: #050908; }
+.camera-ar-model-host { z-index: 1; }
+.camera-ar-model-host #pairViewer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  --poster-color: transparent;
+}
+.camera-ar-model-host .ar-button,
+.camera-ar-model-host .progress { display: none !important; }
+.camera-ar-shade {
+  z-index: 2;
+  background: linear-gradient(180deg, rgba(4, 10, 9, .72), transparent 23%, transparent 65%, rgba(4, 10, 9, .78));
+  pointer-events: none;
+}
+.camera-ar-header,
+.camera-ar-controls,
+.camera-ar-status {
+  position: absolute;
+  z-index: 3;
+}
+.camera-ar-header {
+  top: 0;
+  right: 0;
+  left: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) 12px max(14px, env(safe-area-inset-left));
+}
+.camera-ar-header > div { display: grid; gap: 2px; min-width: 0; text-align: center; }
+.camera-ar-header strong { font-size: 18px; }
+.camera-ar-header span { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.camera-ar-header button,
+.camera-ar-controls button {
+  min-height: 48px;
+  border: 1px solid rgba(255, 255, 255, .44);
+  border-radius: 999px;
+  padding: 10px 15px;
+  color: #fff;
+  background: rgba(11, 25, 23, .72);
+  backdrop-filter: blur(12px);
+  font-weight: 900;
+  cursor: pointer;
+}
+.camera-ar-status {
+  top: calc(max(12px, env(safe-area-inset-top)) + 66px);
+  left: 50%;
+  max-width: calc(100% - 32px);
+  transform: translateX(-50%);
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: rgba(11, 25, 23, .7);
+  font-size: 13px;
+  text-align: center;
+  backdrop-filter: blur(10px);
+}
+.camera-ar-status[data-tone="error"] { background: rgba(143, 45, 24, .86); }
+.camera-ar-controls {
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+  padding: 12px max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+}
+.camera-ar-controls > span { font-size: 12px; text-shadow: 0 2px 5px #000; }
+.camera-ar-controls > div { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.camera-ar-controls button { min-width: 82px; }
+.camera-ar-controls button[hidden] { display: none; }
 
 .noscript { margin: 20px; padding: 16px; background: #fff; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
@@ -352,6 +511,8 @@ button:focus-visible { outline: 4px solid rgba(214, 94, 53, .3); outline-offset:
 @media (max-width: 700px) {
   .site-header { padding-top: max(13px, env(safe-area-inset-top)); }
   .site-header .eyebrow { display: none; }
+  .header-actions { gap: 5px; }
+  .quiet-button { min-height: 42px; padding: 8px 11px; font-size: 12px; }
   h1 { font-size: 23px; }
   .app-layout { width: 100%; gap: 10px; }
   .viewer-panel, .menu-panel { border-right: 0; border-left: 0; border-radius: 0; box-shadow: none; }
@@ -361,6 +522,9 @@ button:focus-visible { outline: 4px solid rgba(214, 94, 53, .3); outline-offset:
   .viewer-heading h2 { font-size: 19px; }
   #pairViewer { height: min(46vh, 430px); min-height: 310px; }
   .ar-button { right: 12px; bottom: 52px; min-height: 52px; padding: 11px 15px; font-size: 15px; }
+  .ar-actions { grid-template-columns: 1fr; }
+  .browser-ar-button { min-height: 56px; }
+  .ar-actions span { text-align: center; }
   .choice-slot { min-height: 81px; padding: 9px 10px; }
   .choice-slot strong { font-size: 16px; }
   .menu-heading { align-items: start; }
@@ -370,6 +534,17 @@ button:focus-visible { outline: 4px solid rgba(214, 94, 53, .3); outline-offset:
   .menu-model, .menu-model model-viewer { height: 126px; }
   .browser-notice { grid-template-columns: 1fr auto; margin: 0 10px 10px; }
   .browser-notice span { grid-column: 1 / -1; grid-row: 2; }
+  .share-content { grid-template-columns: 1fr; justify-items: center; }
+  .share-details { width: 100%; }
+}
+
+@media (orientation: landscape) and (max-height: 620px) {
+  .camera-ar-header { padding-top: max(8px, env(safe-area-inset-top)); padding-bottom: 8px; }
+  .camera-ar-status { top: calc(max(8px, env(safe-area-inset-top)) + 56px); }
+  .camera-ar-controls { justify-items: end; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+  .camera-ar-controls > span { display: none; }
+  .camera-ar-header button,
+  .camera-ar-controls button { min-height: 42px; padding: 8px 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

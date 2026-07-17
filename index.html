@@ -6,13 +6,14 @@
   <meta name="theme-color" content="#f3eadc">
   <meta name="description" content="障害者支援施設での食事選択を支援する、マーカー不要の3D・AR比較ツールです。">
   <title>食事をARでくらべる | ひかり意思決定支援</title>
-  <link rel="stylesheet" href="markerless-ar.css?v=20260716-ipad2">
+  <link rel="stylesheet" href="markerless-ar.css?v=20260717-browserar1">
   <script type="module" src="vendor/model-viewer-4.3.1.min.js"></script>
+  <script defer src="vendor/qrcode-1.0.0.min.js"></script>
   <script defer src="real_models.js?v=20260715-3"></script>
   <script defer src="markerless-models.js?v=20260716-volume3d1"></script>
   <script defer src="menu_data.js?v=20260715-3"></script>
   <script defer src="glb-pair-composer.js?v=20260716-ipad2"></script>
-  <script defer src="markerless-ar.js?v=20260716-ipad2"></script>
+  <script defer src="markerless-ar.js?v=20260717-browserar1"></script>
 </head>
 <body>
   <a class="skip-link" href="#menuGrid">料理一覧へ移動</a>
@@ -22,7 +23,10 @@
       <p class="eyebrow">食事の意思決定支援</p>
       <h1>食事を立体でくらべる</h1>
     </div>
-    <button class="quiet-button" id="helpButton" type="button">使い方</button>
+    <div class="header-actions">
+      <button class="quiet-button" id="shareButton" type="button">URL・QRコード</button>
+      <button class="quiet-button" id="helpButton" type="button">使い方</button>
+    </div>
   </header>
 
   <div class="browser-notice" id="browserNotice" hidden>
@@ -46,7 +50,7 @@
           id="pairViewer"
           alt="味噌ラーメンと牛丼の立体比較"
           ar
-          ar-modes="webxr scene-viewer quick-look"
+          ar-modes="webxr quick-look"
           ar-placement="floor"
           ar-scale="fixed"
           ar-usdz-max-texture-size="1024"
@@ -61,9 +65,9 @@
           shadow-softness=".85"
           exposure="1.08"
           loading="eager">
-          <button class="ar-button" id="arButton" slot="ar-button" type="button">
+          <button class="ar-button" id="nativeArButton" slot="ar-button" type="button" hidden>
             <span aria-hidden="true" class="ar-button-mark"></span>
-            ARで机に表示
+            iPhone標準AR
           </button>
           <div class="progress" slot="progress-bar" aria-hidden="true">
             <span id="progressBar"></span>
@@ -73,6 +77,13 @@
         <div class="viewer-message" id="viewerMessage" role="status" aria-live="polite">
           2品の立体を準備しています
         </div>
+      </div>
+
+      <div class="ar-actions">
+        <button class="browser-ar-button" id="browserArButton" type="button" disabled>
+          カメラARを起動
+        </button>
+        <span>iPad・Androidでもアプリの追加なしで利用できます</span>
       </div>
 
       <div class="choice-pair" aria-label="比較する料理">
@@ -89,9 +100,9 @@
         </button>
       </div>
 
-      <p class="device-note" id="deviceNote">PCでは指やマウスで回して確認できます。スマートフォン・タブレットではARも使えます。</p>
+      <p class="device-note" id="deviceNote">選んだ2品の立体を準備しています。</p>
       <p class="ios-orientation-note" id="iosOrientationNote" hidden>
-        iPhone・iPadを横向きで使うときは、コントロールセンターで「画面の向きロック」を解除してからARを開いてください。
+        iPhone標準ARを横向きで使うときは、先に画面の向きロックを解除してください。
       </p>
     </section>
 
@@ -120,13 +131,57 @@
     </div>
     <ol>
       <li>候補1と候補2の料理を選びます。</li>
-      <li>「ARで机に表示」を押します。</li>
-      <li>机をゆっくり映し、端末の案内に沿って置きます。</li>
-      <li>端末を動かすと、横や斜めから立体を確認できます。</li>
-      <li>iPhone・iPadを横向きで使う場合は、ARを開く前に画面の向きロックを解除します。</li>
+      <li>「カメラARを起動」を押し、カメラを許可します。</li>
+      <li>カメラ映像の上に2品が立体表示されます。</li>
+      <li>1本指で回転し、2本指または画面下のボタンで大きさを調整します。</li>
+      <li>iPhoneでは、対応時のみ「iPhone標準AR」も利用できます。</li>
     </ol>
-    <p>ARが使えない端末でも、この画面で3Dを回して確認できます。印刷マーカーは必要ありません。</p>
+    <p>ブラウザ内カメラARはiPad・Androidにも対応し、追加アプリや印刷マーカーは必要ありません。</p>
   </dialog>
+
+  <dialog class="share-dialog" id="shareDialog">
+    <div class="dialog-head">
+      <div>
+        <p class="step-label">アカウント登録不要</p>
+        <h2>URL・QRコード</h2>
+      </div>
+      <button id="closeShareButton" type="button" aria-label="URL・QRコードを閉じる">閉じる</button>
+    </div>
+    <div class="share-content">
+      <div class="share-qr" id="shareQrCode" aria-label="アプリを開くQRコード">
+        <img src="assets/share/app-url-qr.png?v=20260717" alt="ログイン不要の本番URLを開くQRコード">
+      </div>
+      <div class="share-details">
+        <p>このURLまたはQRコードから、ログインせずにアプリを開けます。</p>
+        <a id="shareUrlLink" href="."></a>
+        <button id="copyShareUrlButton" type="button">URLをコピー</button>
+      </div>
+    </div>
+  </dialog>
+
+  <section class="camera-ar-overlay" id="cameraArOverlay" role="dialog" aria-modal="true" aria-labelledby="cameraArTitle" hidden>
+    <video id="cameraArVideo" playsinline webkit-playsinline muted autoplay></video>
+    <div class="camera-ar-model-host" id="cameraArModelHost"></div>
+    <div class="camera-ar-shade" aria-hidden="true"></div>
+    <header class="camera-ar-header">
+      <button id="closeCameraArButton" type="button">閉じる</button>
+      <div>
+        <strong id="cameraArTitle">カメラAR</strong>
+        <span id="cameraArNames"></span>
+      </div>
+      <button id="switchCameraArButton" type="button">カメラ切替</button>
+    </header>
+    <div class="camera-ar-status" id="cameraArStatus" role="status" aria-live="polite">カメラを準備しています</div>
+    <footer class="camera-ar-controls">
+      <span>1本指で回転、2本指で拡大・移動</span>
+      <div>
+        <button id="cameraSizeDownButton" type="button" aria-label="料理を小さくする">小さく</button>
+        <button id="cameraResetButton" type="button">元に戻す</button>
+        <button id="cameraSizeUpButton" type="button" aria-label="料理を大きくする">大きく</button>
+        <button id="retryCameraArButton" type="button" hidden>カメラ再試行</button>
+      </div>
+    </footer>
+  </section>
 
   <noscript><p class="noscript">この画面にはJavaScriptが必要です。</p></noscript>
 </body>

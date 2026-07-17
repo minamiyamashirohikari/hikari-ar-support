@@ -6,7 +6,7 @@
     'shoyu_ramen', 'miso_ramen', 'gyudon', 'katsudon', 'beef_curry',
     'hamburg_steak', 'omurice', 'fried_chicken_plate', 'udon', 'spaghetti'
   ];
-  const MAX_MENU_PREVIEWS = 4;
+  const DESKTOP_MENU_PREVIEW_LIMIT = 4;
   const items = Array.isArray(window.MENU_ITEMS) ? window.MENU_ITEMS : [];
   const categories = Array.isArray(window.MENU_CATEGORIES) ? window.MENU_CATEGORIES : [];
   const byId = new Map(items.map((item) => [item.id, item]));
@@ -19,7 +19,16 @@
   const viewer = document.getElementById('pairViewer');
   const viewerMessage = document.getElementById('viewerMessage');
   const deviceNote = document.getElementById('deviceNote');
-  const arButton = document.getElementById('arButton');
+  const nativeArButton = document.getElementById('nativeArButton');
+  const browserArButton = document.getElementById('browserArButton');
+  const cameraArOverlay = document.getElementById('cameraArOverlay');
+  const cameraArVideo = document.getElementById('cameraArVideo');
+  const cameraArViewer = viewer;
+  const cameraArModelHost = document.getElementById('cameraArModelHost');
+  const viewerHome = viewer.parentNode;
+  const viewerHomeNext = viewer.nextSibling;
+  const cameraArStatus = document.getElementById('cameraArStatus');
+  const cameraArNames = document.getElementById('cameraArNames');
   const menuGrid = document.getElementById('menuGrid');
   const menuCount = document.getElementById('menuCount');
   const categoryStrip = document.getElementById('categoryStrip');
@@ -27,8 +36,12 @@
   const targetLabel = document.getElementById('targetLabel');
   const progressBar = document.getElementById('progressBar');
   const iosOrientationNote = document.getElementById('iosOrientationNote');
-  const isIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent)
+  const isIPad = /iPad/i.test(navigator.userAgent)
     || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isIPhone = /iPhone|iPod/i.test(navigator.userAgent);
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  const menuPreviewLimit = (isIPhone || isIPad || isAndroid) ? 1 : DESKTOP_MENU_PREVIEW_LIMIT;
+  if (isIPad) viewer.removeAttribute('ar');
 
   let activeChoice = 0;
   let activeCategory = 'favorites';
@@ -43,6 +56,13 @@
   let pairModelReady = false;
   let menuPreviewObserver = null;
   let visibleMenuPreviews = new Set();
+  let nativeArSupported = false;
+  let cameraStream = null;
+  let cameraFacing = 'environment';
+  let cameraOpening = false;
+  let cameraModelReady = false;
+  let cameraVideoReady = false;
+  let cameraDistance = 1.18;
   let selected = readSelection();
 
   function readSelection() {
@@ -174,7 +194,8 @@
     progressBar.style.width = '0%';
     setMessage(`${left.name}と${right.name}の立体を準備しています`);
     if (!viewerReady) {
-      arButton.hidden = true;
+      nativeArButton.hidden = true;
+      browserArButton.disabled = true;
     } else if (preferLocalPair && composer) {
       loadLocalPair(revision);
     } else {
@@ -253,15 +274,21 @@
     container.replaceChildren();
   }
 
+  function releaseMenuPreviews() {
+    if (menuPreviewObserver) menuPreviewObserver.disconnect();
+    visibleMenuPreviews.clear();
+    menuGrid.querySelectorAll('.menu-model').forEach(dehydrateMenuPreview);
+  }
+
   function hydrateVisibleMenuPreviews() {
     if (menuPreviewObserver) menuPreviewObserver.disconnect();
     const previews = menuGrid.querySelectorAll('.menu-model');
     visibleMenuPreviews = new Set();
     if (!('IntersectionObserver' in window)) {
-      Array.from(previews).slice(0, MAX_MENU_PREVIEWS).forEach(hydrateMenuPreview);
+      Array.from(previews).slice(0, menuPreviewLimit).forEach(hydrateMenuPreview);
       return;
     }
-    // Keep iPhone memory stable by retaining card previews only near the viewport.
+    // Keep mobile GPU memory stable by retaining card previews only near the viewport.
     menuPreviewObserver = new window.IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) visibleMenuPreviews.add(entry.target);
@@ -276,7 +303,7 @@
           const rightDistance = Math.abs((rightBox.top + rightBox.bottom) / 2 - viewportCenter);
           return leftDistance - rightDistance;
         })
-        .slice(0, MAX_MENU_PREVIEWS));
+        .slice(0, menuPreviewLimit));
       previews.forEach((preview) => {
         if (keep.has(preview)) hydrateMenuPreview(preview);
         else dehydrateMenuPreview(preview);
@@ -323,21 +350,269 @@
     document.querySelector('.viewer-panel').scrollIntoView({ behavior: 'auto', block: 'start' });
   }
 
+  async function detectNativeArSupport() {
+    nativeArSupported = false;
+    if (isIPhone) {
+      nativeArSupported = Boolean(viewer.canActivateAR);
+    } else if (!isIPad && navigator.xr?.isSessionSupported) {
+      try {
+        nativeArSupported = await navigator.xr.isSessionSupported('immersive-ar');
+      } catch (_) {
+        nativeArSupported = false;
+      }
+    }
+    updateArAvailability();
+  }
+
   function updateArAvailability() {
     if (!viewerReady || !pairModelReady) {
-      arButton.hidden = true;
+      nativeArButton.hidden = true;
+      browserArButton.disabled = true;
       deviceNote.textContent = '選んだ2品の立体を準備しています。';
       return;
     }
-    const supported = Boolean(viewer.canActivateAR);
-    arButton.hidden = !supported;
-    if (supported) {
-      deviceNote.textContent = isIOS
-        ? 'ARを押して机を映します。横向きで使う場合は、先にiPhone・iPadの画面の向きロックを解除してください。'
-        : '「ARで机に表示」を押し、机をゆっくり映して配置してください。マーカーは不要です。';
+    browserArButton.disabled = false;
+    nativeArButton.hidden = !nativeArSupported;
+    if (isIPad) {
+      deviceNote.textContent = 'iPadでは「カメラARを起動」を使用します。壊れた0 KBファイルを開く標準AR経路は使用しません。';
+    } else if (isAndroid) {
+      deviceNote.textContent = 'Androidでは追加アプリ不要の「カメラARを起動」を使用できます。';
+    } else if (nativeArSupported) {
+      deviceNote.textContent = '全端末対応のカメラARと、iPhone標準ARのどちらも利用できます。';
     } else {
-      deviceNote.textContent = 'この端末ではARを起動できないため、指やマウスで回せる3D表示を利用しています。';
+      deviceNote.textContent = '「カメラARを起動」で、カメラ映像の上に2品を立体表示できます。';
     }
+  }
+
+  const canonicalAppUrl = new URL('.', document.baseURI).href;
+  let shareQrReady = false;
+
+  async function copyText(text) {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    const field = document.createElement('textarea');
+    field.value = text;
+    field.setAttribute('readonly', '');
+    field.style.position = 'fixed';
+    field.style.opacity = '0';
+    document.body.appendChild(field);
+    field.select();
+    const copied = document.execCommand('copy');
+    field.remove();
+    if (!copied) throw new Error('Copy command failed');
+  }
+
+  function prepareShareDetails() {
+    const link = document.getElementById('shareUrlLink');
+    link.href = canonicalAppUrl;
+    link.textContent = canonicalAppUrl;
+    if (shareQrReady) return;
+    const host = document.getElementById('shareQrCode');
+    if (typeof window.QRCode !== 'function') {
+      return;
+    }
+    host.replaceChildren();
+    new window.QRCode(host, {
+      text: canonicalAppUrl,
+      width: 220,
+      height: 220,
+      colorDark: '#102423',
+      colorLight: '#ffffff',
+      correctLevel: window.QRCode.CorrectLevel.M
+    });
+    shareQrReady = true;
+  }
+
+  function setCameraStatus(text, tone = 'normal') {
+    cameraArStatus.textContent = text;
+    cameraArStatus.dataset.tone = tone;
+  }
+
+  function stopCameraStream() {
+    if (cameraStream) cameraStream.getTracks().forEach((track) => track.stop());
+    cameraStream = null;
+    cameraArVideo.pause();
+    cameraArVideo.srcObject = null;
+    cameraVideoReady = false;
+  }
+
+  function getUserMediaWithTimeout(constraints) {
+    return new Promise((resolve, reject) => {
+      let finished = false;
+      const timeout = window.setTimeout(() => {
+        finished = true;
+        const error = new Error('Camera permission timeout');
+        error.name = 'CameraTimeoutError';
+        reject(error);
+      }, 15000);
+      navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
+        if (finished) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        finished = true;
+        window.clearTimeout(timeout);
+        resolve(stream);
+      }).catch((error) => {
+        if (finished) return;
+        finished = true;
+        window.clearTimeout(timeout);
+        reject(error);
+      });
+    });
+  }
+
+  async function requestCameraStream(facing) {
+    const attempts = [
+      {
+        audio: false,
+        video: {
+          facingMode: { ideal: facing },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      },
+      { audio: false, video: { facingMode: facing } },
+      { audio: false, video: true }
+    ];
+    let lastError;
+    for (const constraints of attempts) {
+      try {
+        return await getUserMediaWithTimeout(constraints);
+      } catch (error) {
+        lastError = error;
+        if (error?.name === 'NotAllowedError'
+          || error?.name === 'SecurityError'
+          || error?.name === 'CameraTimeoutError') break;
+      }
+    }
+    throw lastError || new Error('Camera unavailable');
+  }
+
+  function waitForCameraVideo() {
+    if (cameraArVideo.readyState >= 2 && cameraArVideo.videoWidth > 0) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const timeout = window.setTimeout(() => finish(new Error('Camera start timeout')), 12000);
+      function finish(error) {
+        window.clearTimeout(timeout);
+        cameraArVideo.removeEventListener('loadeddata', onReady);
+        cameraArVideo.removeEventListener('canplay', onReady);
+        if (error) reject(error);
+        else resolve();
+      }
+      function onReady() {
+        if (cameraArVideo.videoWidth > 0) finish();
+      }
+      cameraArVideo.addEventListener('loadeddata', onReady);
+      cameraArVideo.addEventListener('canplay', onReady);
+    });
+  }
+
+  function cameraFailureMessage(error) {
+    if (error?.name === 'NotAllowedError' || error?.name === 'SecurityError') {
+      return 'カメラが許可されていません。SafariまたはChromeのサイト設定でカメラを許可し、「カメラ再試行」を押してください。';
+    }
+    if (error?.name === 'NotFoundError' || error?.name === 'DevicesNotFoundError') {
+      return '利用できるカメラが見つかりません。端末のカメラ制限を確認してください。';
+    }
+    if (error?.name === 'CameraTimeoutError') {
+      return 'カメラ許可の応答を確認できませんでした。サイト設定でカメラを許可し、「カメラ再試行」を押してください。';
+    }
+    return 'カメラを起動できませんでした。ほかのアプリでカメラを閉じてから再試行してください。';
+  }
+
+  function updateCameraReadyStatus() {
+    if (cameraVideoReady && cameraModelReady) {
+      setCameraStatus('2品をカメラ映像の上に立体表示しています');
+    } else if (cameraVideoReady) {
+      setCameraStatus('カメラ起動済み・料理の立体を準備しています');
+    } else if (cameraModelReady) {
+      setCameraStatus('料理の立体を準備済み・カメラを起動しています');
+    }
+  }
+
+  async function startCameraFeed() {
+    if (!window.isSecureContext) throw new Error('Camera requires HTTPS');
+    if (!navigator.mediaDevices?.getUserMedia) throw new Error('Camera API unavailable');
+    stopCameraStream();
+    setCameraStatus('カメラを起動しています');
+    cameraStream = await requestCameraStream(cameraFacing);
+    cameraArVideo.setAttribute('playsinline', '');
+    cameraArVideo.setAttribute('webkit-playsinline', '');
+    cameraArVideo.muted = true;
+    cameraArVideo.srcObject = cameraStream;
+    await cameraArVideo.play();
+    await waitForCameraVideo();
+    cameraVideoReady = true;
+    updateCameraReadyStatus();
+  }
+
+  async function startCameraForOverlay() {
+    if (cameraOpening) return;
+    cameraOpening = true;
+    const retry = document.getElementById('retryCameraArButton');
+    retry.hidden = true;
+    try {
+      await startCameraFeed();
+    } catch (error) {
+      stopCameraStream();
+      setCameraStatus(cameraFailureMessage(error), 'error');
+      retry.hidden = false;
+    } finally {
+      cameraOpening = false;
+    }
+  }
+
+  function applyCameraDistance() {
+    cameraArViewer.setAttribute('camera-orbit', `0deg 66deg ${cameraDistance.toFixed(2)}m`);
+    if (typeof cameraArViewer.jumpCameraToGoal === 'function') cameraArViewer.jumpCameraToGoal();
+  }
+
+  async function openCameraAr() {
+    if (!pairModelReady || cameraOpening) return;
+    const source = viewer.getAttribute('src');
+    if (!source) {
+      setMessage('料理の立体を準備してから、もう一度カメラARを押してください。', 'warning');
+      return;
+    }
+    const left = byId.get(selected[0]);
+    const right = byId.get(selected[1]);
+    cameraModelReady = true;
+    cameraVideoReady = false;
+    cameraDistance = 1.18;
+    cameraArNames.textContent = `${left.name} と ${right.name}`;
+    cameraArViewer.setAttribute('alt', `${left.name}と${right.name}をカメラ映像に重ねた立体比較`);
+    cameraArViewer.setAttribute('touch-action', 'none');
+    releaseMenuPreviews();
+    cameraArModelHost.appendChild(cameraArViewer);
+    applyCameraDistance();
+    cameraArOverlay.hidden = false;
+    document.body.classList.add('camera-ar-open');
+    setCameraStatus('カメラと料理の立体を準備しています');
+    await startCameraForOverlay();
+  }
+
+  function closeCameraAr(restoreFocus = true) {
+    stopCameraStream();
+    cameraArOverlay.hidden = true;
+    document.body.classList.remove('camera-ar-open');
+    if (cameraArViewer.parentNode !== viewerHome) viewerHome.insertBefore(cameraArViewer, viewerHomeNext);
+    cameraArViewer.setAttribute('touch-action', 'pan-y');
+    cameraArViewer.setAttribute('camera-orbit', '0deg 62deg 1.25m');
+    if (typeof cameraArViewer.jumpCameraToGoal === 'function') cameraArViewer.jumpCameraToGoal();
+    cameraModelReady = false;
+    document.getElementById('retryCameraArButton').hidden = true;
+    if (restoreFocus) {
+      hydrateVisibleMenuPreviews();
+      browserArButton.focus();
+    }
+  }
+
+  async function switchCameraAr() {
+    cameraFacing = cameraFacing === 'environment' ? 'user' : 'environment';
+    await startCameraForOverlay();
   }
 
   viewer.addEventListener('progress', (event) => {
@@ -358,6 +633,7 @@
       ? `${left.name}を3D表示しています。2品表示は再読み込みで復旧できます。`
       : `${left.name}と${right.name}を立体で表示しています`);
     updateArAvailability();
+    detectNativeArSupport();
   });
 
   function handleViewerFailure(reason = 'error') {
@@ -392,10 +668,22 @@
     const messages = {
       'session-started': '机をゆっくり映してください',
       'object-placed': '料理を机に配置しました。端末を動かして確認できます。',
-      failed: 'ARを起動できませんでした。この画面の3D表示をご利用ください。',
+      failed: '標準ARを起動できませんでした。「カメラARを起動」をご利用ください。',
       'not-presenting': '3D比較画面に戻りました'
     };
     if (messages[event.detail.status]) setMessage(messages[event.detail.status], event.detail.status === 'failed' ? 'warning' : 'normal');
+  });
+
+  cameraArViewer.addEventListener('load', () => {
+    if (cameraArOverlay.hidden) return;
+    cameraModelReady = true;
+    updateCameraReadyStatus();
+  });
+
+  cameraArViewer.addEventListener('error', () => {
+    if (cameraArOverlay.hidden) return;
+    cameraModelReady = false;
+    setCameraStatus('料理の立体を読み込めませんでした。画面を閉じて再度お試しください。', 'error');
   });
 
   document.querySelectorAll('[data-choice-index]').forEach((button) => {
@@ -409,6 +697,23 @@
 
   searchInput.addEventListener('input', renderMenu);
 
+  browserArButton.addEventListener('click', openCameraAr);
+  document.getElementById('closeCameraArButton').addEventListener('click', () => closeCameraAr());
+  document.getElementById('switchCameraArButton').addEventListener('click', switchCameraAr);
+  document.getElementById('retryCameraArButton').addEventListener('click', startCameraForOverlay);
+  document.getElementById('cameraSizeDownButton').addEventListener('click', () => {
+    cameraDistance = Math.min(2.4, cameraDistance + .16);
+    applyCameraDistance();
+  });
+  document.getElementById('cameraSizeUpButton').addEventListener('click', () => {
+    cameraDistance = Math.max(.62, cameraDistance - .14);
+    applyCameraDistance();
+  });
+  document.getElementById('cameraResetButton').addEventListener('click', () => {
+    cameraDistance = 1.18;
+    applyCameraDistance();
+  });
+
   const helpDialog = document.getElementById('helpDialog');
   document.getElementById('helpButton').addEventListener('click', () => helpDialog.showModal());
   document.getElementById('closeHelpButton').addEventListener('click', () => helpDialog.close());
@@ -416,14 +721,32 @@
     if (event.target === helpDialog) helpDialog.close();
   });
 
+  const shareDialog = document.getElementById('shareDialog');
+  document.getElementById('shareButton').addEventListener('click', () => {
+    prepareShareDetails();
+    shareDialog.showModal();
+  });
+  document.getElementById('closeShareButton').addEventListener('click', () => shareDialog.close());
+  shareDialog.addEventListener('click', (event) => {
+    if (event.target === shareDialog) shareDialog.close();
+  });
+  document.getElementById('copyShareUrlButton').addEventListener('click', async (event) => {
+    try {
+      await copyText(canonicalAppUrl);
+      event.currentTarget.textContent = 'コピーしました';
+    } catch (_) {
+      event.currentTarget.textContent = 'コピーできませんでした';
+    }
+  });
+
   const isEmbeddedBrowser = /Line\//i.test(navigator.userAgent)
     || /FBAN|FBAV|Instagram/i.test(navigator.userAgent);
   const browserNotice = document.getElementById('browserNotice');
   browserNotice.hidden = !isEmbeddedBrowser;
-  iosOrientationNote.hidden = !isIOS;
+  iosOrientationNote.hidden = !isIPhone;
   document.getElementById('copyUrlButton').addEventListener('click', async () => {
     try {
-      await navigator.clipboard.writeText(location.href);
+      await copyText(canonicalAppUrl);
       document.getElementById('copyUrlButton').textContent = 'コピーしました';
     } catch (_) {
       setMessage('URLをコピーできませんでした。共有メニューからSafariで開いてください。', 'warning');
@@ -439,12 +762,14 @@
     viewerReady = true;
     refreshPair();
     updateArAvailability();
+    detectNativeArSupport();
     window.setTimeout(updateArAvailability, 1200);
   });
 
   window.addEventListener('pagehide', () => {
     if (menuPreviewObserver) menuPreviewObserver.disconnect();
     clearViewerLoadTimer();
+    closeCameraAr(false);
     if (pairObjectUrl) URL.revokeObjectURL(pairObjectUrl);
   });
 })();
