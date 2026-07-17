@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#102423">
+  <meta name="description" content="iPhone、iPad、Androidで同じ操作ができる、料理比較用のマーカー不要空間ARです。">
+  <title>料理を空間に置く | ひかり意思決定支援</title>
+  <link rel="stylesheet" href="spatial-ar.css?v=20260717-world1">
+  <script src="vendor/8thwall/8frame-1.5.0.min.js"></script>
+  <script src="vendor/8thwall/xrextras.js"></script>
+  <script async src="vendor/8thwall/xr.js" data-preload-chunks="slam"></script>
+  <script defer src="real_models.js?v=20260715-3"></script>
+  <script defer src="markerless-models.js?v=20260716-volume3d1"></script>
+  <script defer src="menu_data.js?v=20260715-3"></script>
+  <script defer src="glb-pair-composer.js?v=20260716-ipad2"></script>
+  <script defer src="spatial-ar.js?v=20260717-world1"></script>
+</head>
+<body>
+  <main class="ar-app" id="arApp">
+    <a-scene
+      id="xrScene"
+      embedded
+      renderer="colorManagement: true; physicallyCorrectLights: true; antialias: true; alpha: true"
+      loading-screen="enabled: false"
+      vr-mode-ui="enabled: false"
+      device-orientation-permission-ui="enabled: false"
+      shadow="type: pcfsoft">
+      <a-camera id="arCamera" position="0 1.5 0" near="0.01" far="50"></a-camera>
+
+      <a-entity id="pairEntity" visible="false" shadow="cast: true; receive: false"></a-entity>
+      <a-plane
+        id="shadowCatcher"
+        visible="false"
+        width="0.68"
+        height="0.52"
+        rotation="-90 0 0"
+        material="shader: shadow; transparent: true; opacity: 0.32"
+        shadow="cast: false; receive: true">
+      </a-plane>
+
+      <a-light type="ambient" color="#fff6e7" intensity="0.72"></a-light>
+      <a-light
+        type="directional"
+        color="#fff5df"
+        intensity="0.9"
+        position="-1.6 3 1.8"
+        light="castShadow: true; shadowMapWidth: 1024; shadowMapHeight: 1024; shadowCameraLeft: -2; shadowCameraRight: 2; shadowCameraTop: 2; shadowCameraBottom: -2">
+      </a-light>
+    </a-scene>
+
+    <header class="ar-header">
+      <a class="round-control back-control" href="./" aria-label="料理選択に戻る">戻る</a>
+      <div class="ar-title">
+        <strong>空間AR</strong>
+        <span>iPhone・iPad・Android 共通</span>
+      </div>
+      <button class="round-control" id="recenterButton" type="button" disabled>再配置</button>
+    </header>
+
+    <section class="status-pill" id="statusPill" role="status" aria-live="polite" data-tone="loading">
+      AR機能を準備しています
+    </section>
+
+    <div class="aim-guide" id="aimGuide" aria-hidden="true">
+      <span></span>
+    </div>
+
+    <section class="start-gate" id="startGate" aria-labelledby="startTitle">
+      <div class="start-card">
+        <p class="start-kicker">マーカー・追加アプリ不要</p>
+        <h1 id="startTitle">机を映して料理を置きます</h1>
+        <ol>
+          <li>カメラを開始します</li>
+          <li>明るい机をゆっくり映します</li>
+          <li>中央を合わせて「ここに置く」を押します</li>
+        </ol>
+        <button class="start-button" id="startCameraButton" type="button" disabled>ARを準備しています</button>
+        <p class="start-note">カメラ映像は端末内で処理され、保存・送信しません。</p>
+      </div>
+    </section>
+
+    <footer class="ar-footer">
+      <button class="place-button" id="placeButton" type="button" disabled>ここに置く</button>
+      <div class="size-controls" id="sizeControls" hidden>
+        <button id="sizeDownButton" type="button" aria-label="料理を小さくする">小さく</button>
+        <button id="sizeResetButton" type="button">実物大</button>
+        <button id="sizeUpButton" type="button" aria-label="料理を大きくする">大きく</button>
+      </div>
+      <p class="engine-notice">
+        AR tracking software © 2026 Niantic Spatial, Inc.
+        <a href="vendor/8thwall/XR-ENGINE-LICENSE" target="_blank" rel="noreferrer">XR Engine License Agreement</a>
+        に基づき使用。無保証です。補助機能は
+        <a href="vendor/8thwall/XREXTRAS-LICENSE" target="_blank" rel="noreferrer">MIT License</a>
+        に基づき使用しています。
+      </p>
+    </footer>
+
+    <section class="fatal-panel" id="fatalPanel" role="alert" hidden>
+      <div>
+        <p class="start-kicker">復旧案内</p>
+        <h2 id="fatalTitle">空間ARを開始できませんでした</h2>
+        <p id="fatalDetail">通信とカメラ設定を確認してください。</p>
+        <div class="fatal-actions">
+          <button id="retryButton" type="button">もう一度試す</button>
+          <a href="./?simpleAr=1" id="simpleArLink">簡易カメラ表示を使う</a>
+          <a href="./">料理選択に戻る</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <noscript><p class="noscript">空間ARにはJavaScriptが必要です。</p></noscript>
+</body>
+</html>

@@ -219,6 +219,18 @@ h2 { margin-bottom: 0; font-size: clamp(20px, 2.5vw, 29px); letter-spacing: -.03
   cursor: pointer;
 }
 .browser-ar-button:disabled { opacity: .52; cursor: wait; }
+.simple-camera-button {
+  min-height: 52px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  padding: 10px 16px;
+  color: var(--teal-dark);
+  background: #fff;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.simple-camera-button:disabled { opacity: .52; cursor: wait; }
 .ar-actions span { color: var(--muted); font-size: 13px; line-height: 1.55; }
 
 .viewer-message {
@@ -524,6 +536,7 @@ button:focus-visible { outline: 4px solid rgba(214, 94, 53, .3); outline-offset:
   .ar-button { right: 12px; bottom: 52px; min-height: 52px; padding: 11px 15px; font-size: 15px; }
   .ar-actions { grid-template-columns: 1fr; }
   .browser-ar-button { min-height: 56px; }
+  .simple-camera-button { min-height: 48px; }
   .ar-actions span { text-align: center; }
   .choice-slot { min-height: 81px; padding: 9px 10px; }
   .choice-slot strong { font-size: 16px; }

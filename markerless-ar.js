@@ -21,6 +21,7 @@
   const deviceNote = document.getElementById('deviceNote');
   const nativeArButton = document.getElementById('nativeArButton');
   const browserArButton = document.getElementById('browserArButton');
+  const simpleCameraArButton = document.getElementById('simpleCameraArButton');
   const cameraArOverlay = document.getElementById('cameraArOverlay');
   const cameraArVideo = document.getElementById('cameraArVideo');
   const cameraArViewer = viewer;
@@ -41,7 +42,7 @@
   const isIPhone = /iPhone|iPod/i.test(navigator.userAgent);
   const isAndroid = /Android/i.test(navigator.userAgent);
   const menuPreviewLimit = (isIPhone || isIPad || isAndroid) ? 1 : DESKTOP_MENU_PREVIEW_LIMIT;
-  if (isIPad) viewer.removeAttribute('ar');
+  if (!isIPhone) viewer.removeAttribute('ar');
 
   let activeChoice = 0;
   let activeCategory = 'favorites';
@@ -64,6 +65,8 @@
   let cameraVideoReady = false;
   let cameraDistance = 1.18;
   let selected = readSelection();
+  const simpleArRequested = new URLSearchParams(location.search).get('simpleAr') === '1';
+  let simpleArAutoOpened = false;
 
   function readSelection() {
     try {
@@ -196,6 +199,7 @@
     if (!viewerReady) {
       nativeArButton.hidden = true;
       browserArButton.disabled = true;
+      simpleCameraArButton.disabled = true;
     } else if (preferLocalPair && composer) {
       loadLocalPair(revision);
     } else {
@@ -350,17 +354,8 @@
     document.querySelector('.viewer-panel').scrollIntoView({ behavior: 'auto', block: 'start' });
   }
 
-  async function detectNativeArSupport() {
-    nativeArSupported = false;
-    if (isIPhone) {
-      nativeArSupported = Boolean(viewer.canActivateAR);
-    } else if (!isIPad && navigator.xr?.isSessionSupported) {
-      try {
-        nativeArSupported = await navigator.xr.isSessionSupported('immersive-ar');
-      } catch (_) {
-        nativeArSupported = false;
-      }
-    }
+  function detectNativeArSupport() {
+    nativeArSupported = isIPhone && Boolean(viewer.canActivateAR);
     updateArAvailability();
   }
 
@@ -368,20 +363,22 @@
     if (!viewerReady || !pairModelReady) {
       nativeArButton.hidden = true;
       browserArButton.disabled = true;
+      simpleCameraArButton.disabled = true;
       deviceNote.textContent = '選んだ2品の立体を準備しています。';
       return;
     }
     browserArButton.disabled = false;
+    simpleCameraArButton.disabled = false;
     nativeArButton.hidden = !nativeArSupported;
-    if (isIPad) {
-      deviceNote.textContent = 'iPadでは「カメラARを起動」を使用します。壊れた0 KBファイルを開く標準AR経路は使用しません。';
-    } else if (isAndroid) {
-      deviceNote.textContent = 'Androidでは追加アプリ不要の「カメラARを起動」を使用できます。';
-    } else if (nativeArSupported) {
-      deviceNote.textContent = '全端末対応のカメラARと、iPhone標準ARのどちらも利用できます。';
-    } else {
-      deviceNote.textContent = '「カメラARを起動」で、カメラ映像の上に2品を立体表示できます。';
-    }
+    deviceNote.textContent = '「空間ARを起動」で、机に料理を固定し、端末を動かして横や斜めから確認できます。';
+  }
+
+  function openSpatialAr() {
+    if (!pairModelReady) return;
+    const url = new URL('spatial-ar.html', document.baseURI);
+    url.searchParams.set('left', selected[0]);
+    url.searchParams.set('right', selected[1]);
+    location.href = url.href;
   }
 
   const canonicalAppUrl = new URL('.', document.baseURI).href;
@@ -606,7 +603,7 @@
     document.getElementById('retryCameraArButton').hidden = true;
     if (restoreFocus) {
       hydrateVisibleMenuPreviews();
-      browserArButton.focus();
+      simpleCameraArButton.focus();
     }
   }
 
@@ -634,6 +631,13 @@
       : `${left.name}と${right.name}を立体で表示しています`);
     updateArAvailability();
     detectNativeArSupport();
+    if (simpleArRequested && !simpleArAutoOpened) {
+      simpleArAutoOpened = true;
+      const cleanUrl = new URL(location.href);
+      cleanUrl.searchParams.delete('simpleAr');
+      history.replaceState(null, '', cleanUrl);
+      window.setTimeout(openCameraAr, 0);
+    }
   });
 
   function handleViewerFailure(reason = 'error') {
@@ -697,7 +701,8 @@
 
   searchInput.addEventListener('input', renderMenu);
 
-  browserArButton.addEventListener('click', openCameraAr);
+  browserArButton.addEventListener('click', openSpatialAr);
+  simpleCameraArButton.addEventListener('click', openCameraAr);
   document.getElementById('closeCameraArButton').addEventListener('click', () => closeCameraAr());
   document.getElementById('switchCameraArButton').addEventListener('click', switchCameraAr);
   document.getElementById('retryCameraArButton').addEventListener('click', startCameraForOverlay);

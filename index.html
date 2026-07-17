@@ -6,14 +6,14 @@
   <meta name="theme-color" content="#f3eadc">
   <meta name="description" content="障害者支援施設での食事選択を支援する、マーカー不要の3D・AR比較ツールです。">
   <title>食事をARでくらべる | ひかり意思決定支援</title>
-  <link rel="stylesheet" href="markerless-ar.css?v=20260717-browserar1">
+  <link rel="stylesheet" href="markerless-ar.css?v=20260717-world1">
   <script type="module" src="vendor/model-viewer-4.3.1.min.js"></script>
   <script defer src="vendor/qrcode-1.0.0.min.js"></script>
   <script defer src="real_models.js?v=20260715-3"></script>
   <script defer src="markerless-models.js?v=20260716-volume3d1"></script>
   <script defer src="menu_data.js?v=20260715-3"></script>
   <script defer src="glb-pair-composer.js?v=20260716-ipad2"></script>
-  <script defer src="markerless-ar.js?v=20260717-browserar1"></script>
+  <script defer src="markerless-ar.js?v=20260717-world1"></script>
 </head>
 <body>
   <a class="skip-link" href="#menuGrid">料理一覧へ移動</a>
@@ -67,7 +67,7 @@
           loading="eager">
           <button class="ar-button" id="nativeArButton" slot="ar-button" type="button" hidden>
             <span aria-hidden="true" class="ar-button-mark"></span>
-            iPhone標準AR
+            iPhone標準AR（予備）
           </button>
           <div class="progress" slot="progress-bar" aria-hidden="true">
             <span id="progressBar"></span>
@@ -81,9 +81,12 @@
 
       <div class="ar-actions">
         <button class="browser-ar-button" id="browserArButton" type="button" disabled>
-          カメラARを起動
+          空間ARを起動
         </button>
-        <span>iPad・Androidでもアプリの追加なしで利用できます</span>
+        <button class="simple-camera-button" id="simpleCameraArButton" type="button" disabled>
+          簡易カメラ表示
+        </button>
+        <span>3端末とも、机に置いて端末を動かして見られる同じAR画面を使用します</span>
       </div>
 
       <div class="choice-pair" aria-label="比較する料理">
@@ -131,12 +134,14 @@
     </div>
     <ol>
       <li>候補1と候補2の料理を選びます。</li>
-      <li>「カメラARを起動」を押し、カメラを許可します。</li>
-      <li>カメラ映像の上に2品が立体表示されます。</li>
-      <li>1本指で回転し、2本指または画面下のボタンで大きさを調整します。</li>
-      <li>iPhoneでは、対応時のみ「iPhone標準AR」も利用できます。</li>
+      <li>「空間ARを起動」を押し、カメラを許可します。</li>
+      <li>明るい机をゆっくり映し、中央を合わせます。</li>
+      <li>「ここに置く」を押すと、2品がその場所に固定されます。</li>
+      <li>端末を動かすと、料理を横や斜めから確認できます。</li>
+      <li>開始できない端末だけ「簡易カメラ表示」を使用します。</li>
     </ol>
-    <p>ブラウザ内カメラARはiPad・Androidにも対応し、追加アプリや印刷マーカーは必要ありません。</p>
+    <p>iPhone・iPad・Androidで同じ操作です。追加アプリや印刷マーカーは必要ありません。</p>
+    <p>推奨環境はiOS・iPadOS 16.4以降のSafari、Androidの最新版Chromeです。対応外の場合は「簡易カメラ表示」を利用できます。</p>
   </dialog>
 
   <dialog class="share-dialog" id="shareDialog">
