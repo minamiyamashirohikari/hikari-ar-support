@@ -6,22 +6,22 @@
   <meta name="theme-color" content="#102423">
   <meta name="description" content="iPhone、iPad、Androidで同じ操作ができる、料理比較用のマーカー不要空間ARです。">
   <title>料理を空間に置く | ひかり意思決定支援</title>
-  <link rel="stylesheet" href="spatial-ar.css?v=20260717-world1">
+  <link rel="stylesheet" href="spatial-ar.css?v=20260717-quality2">
   <script src="vendor/8thwall/8frame-1.5.0.min.js"></script>
   <script src="vendor/8thwall/xrextras.js"></script>
   <script async src="vendor/8thwall/xr.js" data-preload-chunks="slam"></script>
   <script defer src="real_models.js?v=20260715-3"></script>
-  <script defer src="markerless-models.js?v=20260716-volume3d1"></script>
+  <script defer src="markerless-models.js?v=20260717-componentv2"></script>
   <script defer src="menu_data.js?v=20260715-3"></script>
   <script defer src="glb-pair-composer.js?v=20260716-ipad2"></script>
-  <script defer src="spatial-ar.js?v=20260717-world1"></script>
+  <script defer src="spatial-ar.js?v=20260717-quality2"></script>
 </head>
 <body>
   <main class="ar-app" id="arApp">
     <a-scene
       id="xrScene"
       embedded
-      renderer="colorManagement: true; physicallyCorrectLights: true; antialias: true; alpha: true"
+      renderer="colorManagement: true; physicallyCorrectLights: false; toneMapping: ACESFilmic; exposure: 1.22; antialias: true; alpha: true"
       loading-screen="enabled: false"
       vr-mode-ui="enabled: false"
       device-orientation-permission-ui="enabled: false"
@@ -35,18 +35,20 @@
         width="0.68"
         height="0.52"
         rotation="-90 0 0"
-        material="shader: shadow; transparent: true; opacity: 0.32"
+        material="shader: shadow; transparent: true; opacity: 0.22"
         shadow="cast: false; receive: true">
       </a-plane>
 
-      <a-light type="ambient" color="#fff6e7" intensity="0.72"></a-light>
+      <a-light type="ambient" color="#fff8ee" intensity="0.96"></a-light>
+      <a-light type="hemisphere" color="#fff8e8" ground-color="#6f817d" intensity="0.72"></a-light>
       <a-light
         type="directional"
         color="#fff5df"
-        intensity="0.9"
+        intensity="1.18"
         position="-1.6 3 1.8"
         light="castShadow: true; shadowMapWidth: 1024; shadowMapHeight: 1024; shadowCameraLeft: -2; shadowCameraRight: 2; shadowCameraTop: 2; shadowCameraBottom: -2">
       </a-light>
+      <a-light type="directional" color="#dcecff" intensity="0.48" position="1.8 1.8 -1.4"></a-light>
     </a-scene>
 
     <header class="ar-header">

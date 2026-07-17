@@ -369,8 +369,14 @@
     }
     browserArButton.disabled = false;
     simpleCameraArButton.disabled = false;
-    nativeArButton.hidden = !nativeArSupported;
-    deviceNote.textContent = '「空間ARを起動」で、机に料理を固定し、端末を動かして横や斜めから確認できます。';
+    nativeArButton.hidden = true;
+    if (nativeArSupported) {
+      browserArButton.textContent = 'iPhone標準ARを起動';
+      deviceNote.textContent = 'iPhone標準ARを優先します。料理を机に置き、端末を動かして横や斜めから確認できます。';
+    } else {
+      browserArButton.textContent = '空間ARを起動';
+      deviceNote.textContent = '追加アプリ不要の空間ARで、料理を机に固定して横や斜めから確認できます。';
+    }
   }
 
   function openSpatialAr() {
@@ -379,6 +385,24 @@
     url.searchParams.set('left', selected[0]);
     url.searchParams.set('right', selected[1]);
     location.href = url.href;
+  }
+
+  async function openPreferredAr() {
+    if (!pairModelReady) return;
+    if (!nativeArSupported) {
+      openSpatialAr();
+      return;
+    }
+    browserArButton.disabled = true;
+    setMessage('iPhone標準ARを起動しています');
+    try {
+      await viewer.activateAR();
+    } catch (_) {
+      setMessage('iPhone標準ARを開始できなかったため、空間ARへ切り替えます。', 'warning');
+      openSpatialAr();
+    } finally {
+      browserArButton.disabled = false;
+    }
   }
 
   const canonicalAppUrl = new URL('.', document.baseURI).href;
@@ -701,7 +725,7 @@
 
   searchInput.addEventListener('input', renderMenu);
 
-  browserArButton.addEventListener('click', openSpatialAr);
+  browserArButton.addEventListener('click', openPreferredAr);
   simpleCameraArButton.addEventListener('click', openCameraAr);
   document.getElementById('closeCameraArButton').addEventListener('click', () => closeCameraAr());
   document.getElementById('switchCameraArButton').addEventListener('click', switchCameraAr);
