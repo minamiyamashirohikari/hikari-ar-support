@@ -342,10 +342,13 @@
     menuGrid.innerHTML = visible.map((item) => {
       const selectedIndex = selected.indexOf(item.id);
       const duplicate = selectedIndex !== -1 && selectedIndex !== activeChoice;
+      const thumbnailUrl = item.photoImage
+        ? `assets/menu-thumbnails/${item.id}.jpg`
+        : item.image;
       return `
         <button class="menu-card${selectedIndex !== -1 ? ' selected' : ''}" type="button" data-menu-id="${item.id}" aria-disabled="${duplicate}">
-          <span class="menu-model" data-model-url="${item.modelUrl}" data-image-url="${item.image}" data-model-alt="${item.name}の立体" role="img" aria-label="${item.name}の料理写真">
-            <img class="menu-photo" src="${item.image}" alt="" loading="lazy" decoding="async">
+          <span class="menu-model" data-model-url="${item.modelUrl}" data-image-url="${thumbnailUrl}" data-model-alt="${item.name}の立体" role="img" aria-label="${item.name}の料理写真">
+            <img class="menu-photo" src="${thumbnailUrl}" alt="" loading="lazy" decoding="async">
           </span>
           <span class="menu-card-text">
             <strong>${item.name}</strong>
