@@ -244,9 +244,9 @@
   }
 
   function hydrateMenuPreview(container) {
-    if (container.dataset.hydrated === 'true') return;
-    if (!container.dataset.loadingLabel) {
-      container.dataset.loadingLabel = container.getAttribute('aria-label') || `${container.dataset.modelAlt}を準備中`;
+    if (container.dataset.hydrated === 'true' || container.dataset.modelFailed === 'true') return;
+    if (!container.dataset.posterLabel) {
+      container.dataset.posterLabel = container.getAttribute('aria-label') || `${container.dataset.modelAlt}の料理写真`;
     }
     const model = document.createElement('model-viewer');
     const attributes = {
@@ -264,18 +264,33 @@
       'disable-zoom': ''
     };
     Object.entries(attributes).forEach(([name, value]) => model.setAttribute(name, value));
+    model.addEventListener('error', () => {
+      if (!container.contains(model)) return;
+      container.dataset.modelFailed = 'true';
+      dehydrateMenuPreview(container);
+    }, { once: true });
     container.dataset.hydrated = 'true';
     container.removeAttribute('role');
     container.removeAttribute('aria-label');
     container.replaceChildren(model);
   }
 
+  function createMenuPoster(container) {
+    const poster = document.createElement('img');
+    poster.className = 'menu-photo';
+    poster.src = container.dataset.imageUrl;
+    poster.alt = '';
+    poster.loading = 'lazy';
+    poster.decoding = 'async';
+    return poster;
+  }
+
   function dehydrateMenuPreview(container) {
     if (container.dataset.hydrated !== 'true') return;
     container.dataset.hydrated = 'false';
     container.setAttribute('role', 'img');
-    container.setAttribute('aria-label', container.dataset.loadingLabel || `${container.dataset.modelAlt}を準備中`);
-    container.replaceChildren();
+    container.setAttribute('aria-label', container.dataset.posterLabel || `${container.dataset.modelAlt}の料理写真`);
+    container.replaceChildren(createMenuPoster(container));
   }
 
   function releaseMenuPreviews() {
@@ -329,7 +344,9 @@
       const duplicate = selectedIndex !== -1 && selectedIndex !== activeChoice;
       return `
         <button class="menu-card${selectedIndex !== -1 ? ' selected' : ''}" type="button" data-menu-id="${item.id}" aria-disabled="${duplicate}">
-          <span class="menu-model" data-model-url="${item.modelUrl}" data-model-alt="${item.name}の立体" role="img" aria-label="${item.name}の3Dを準備中"></span>
+          <span class="menu-model" data-model-url="${item.modelUrl}" data-image-url="${item.image}" data-model-alt="${item.name}の立体" role="img" aria-label="${item.name}の料理写真">
+            <img class="menu-photo" src="${item.image}" alt="" loading="lazy" decoding="async">
+          </span>
           <span class="menu-card-text">
             <strong>${item.name}</strong>
             <span>${item.categoryLabel}</span>
