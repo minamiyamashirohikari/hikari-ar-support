@@ -37,6 +37,8 @@
     tempura: 'assets/photos/tempura.png',
     hamburger: 'assets/photos/hamburger.png',
     sandwich: 'assets/photos/sandwich.png',
+    sandwich2: 'assets/photos/sandwich2.png',
+    ebi_fry: 'assets/photos/ebi_fry.png',
     onigiri: 'assets/photos/onigiri.png'
   };
 
@@ -51,8 +53,8 @@
     const isDon = category === 'don' || id === 'fried_rice';
     const isDrink = category === 'drink';
     const isSweets = category === 'sweets';
-    const isBread = category === 'ricebread' || ['sandwich', 'hamburger', 'pizza', 'toast', 'bread_roll'].includes(id);
-    const isPlate = ['hamburg_steak', 'fried_chicken_plate', 'kids_plate', 'spaghetti', 'gratin', 'stew', 'gyoza', 'mapo_tofu', 'harumaki', 'tempura', 'grilled_fish', 'salad', 'soup'].includes(id);
+    const isBread = category === 'ricebread' || ['sandwich', 'sandwich2', 'hamburger', 'pizza', 'toast', 'bread_roll'].includes(id);
+    const isPlate = ['hamburg_steak', 'fried_chicken_plate', 'kids_plate', 'spaghetti', 'gratin', 'stew', 'gyoza', 'mapo_tofu', 'harumaki', 'tempura', 'ebi_fry', 'grilled_fish', 'salad', 'soup'].includes(id);
     const isSushi = ['sushi', 'chirashi_sushi', 'ehomaki', 'osechi'].includes(id);
 
     const steam = /あたたかい|スープ|めん|カレー|丼|定食|中華|焼き目|揚げ物/.test(tagText)
@@ -205,6 +207,7 @@
     ['sushi', 'お寿司', 'おすし', 'japanese', '🍣', ['特別感', '和食', '冷たい']],
     ['grilled_fish', '焼き魚', 'やきざかな', 'japanese', '🐟', ['和食', '魚', 'あっさり']],
     ['tempura', '天ぷら', 'てんぷら', 'japanese', '🍤', ['揚げ物', '和食', 'サクサク']],
+    ['ebi_fry', 'エビフライ', 'えびふらい', 'japanese', '🍤', ['揚げ物', 'えび', 'サクサク']],
     ['udon', 'うどん', 'うどん', 'japanese', '🍜', ['めん', 'やさしい', 'あたたかい']],
 
     ['hamburg_steak', 'ハンバーグ', 'はんばーぐ', 'family', '🍽️', ['肉', 'やわらかい', '人気']],
@@ -220,7 +223,8 @@
     ['pizza', 'ピザ', 'ぴざ', 'fastfood', '🍕', ['チーズ', '分けやすい', '楽しい']],
     ['fried_potato', 'フライドポテト', 'ふらいどぽてと', 'fastfood', '🍟', ['サクサク', 'つまみやすい', '軽い']],
 
-    ['sandwich', 'サンドイッチ', 'さんどいっち', 'light', '🥪', ['パン', '軽食', '手で持てる']],
+    ['sandwich', 'サンドイッチ1', 'さんどいっち いち', 'light', '🥪', ['パン', '軽食', '手で持てる']],
+    ['sandwich2', 'サンドイッチ2', 'さんどいっち に', 'light', '🥪', ['パン', '軽食', '市販タイプ']],
     ['soup', 'スープ', 'すーぷ', 'light', '🥣', ['あたたかい', 'やさしい', '飲みやすい']],
     ['salad', 'サラダ', 'さらだ', 'light', '🥗', ['野菜', 'さっぱり', '冷たい']],
 

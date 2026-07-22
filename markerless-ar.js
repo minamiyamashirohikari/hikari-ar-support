@@ -278,11 +278,21 @@
   function createMenuPoster(container) {
     const poster = document.createElement('img');
     poster.className = 'menu-photo';
-    poster.src = container.dataset.imageUrl;
     poster.alt = '';
     poster.loading = 'lazy';
     poster.decoding = 'async';
+    armMenuPoster(poster, container.dataset.fallbackImageUrl);
+    poster.src = container.dataset.imageUrl;
     return poster;
+  }
+
+  function armMenuPoster(poster, fallbackUrl) {
+    if (!fallbackUrl) return;
+    poster.addEventListener('error', () => {
+      if (poster.dataset.fallbackApplied === 'true') return;
+      poster.dataset.fallbackApplied = 'true';
+      poster.src = fallbackUrl;
+    }, { once: true });
   }
 
   function dehydrateMenuPreview(container) {
@@ -347,8 +357,8 @@
         : item.image;
       return `
         <button class="menu-card${selectedIndex !== -1 ? ' selected' : ''}" type="button" data-menu-id="${item.id}" aria-disabled="${duplicate}">
-          <span class="menu-model" data-model-url="${item.modelUrl}" data-image-url="${thumbnailUrl}" data-model-alt="${item.name}の立体" role="img" aria-label="${item.name}の料理写真">
-            <img class="menu-photo" src="${thumbnailUrl}" alt="" loading="lazy" decoding="async">
+          <span class="menu-model" data-model-url="${item.modelUrl}" data-image-url="${thumbnailUrl}" data-fallback-image-url="${item.image}" data-model-alt="${item.name}の立体" role="img" aria-label="${item.name}の料理写真">
+            <img class="menu-photo" alt="" loading="lazy" decoding="async">
           </span>
           <span class="menu-card-text">
             <strong>${item.name}</strong>
@@ -356,6 +366,11 @@
           </span>
         </button>`;
     }).join('');
+    menuGrid.querySelectorAll('.menu-model').forEach((container) => {
+      const poster = container.querySelector('.menu-photo');
+      armMenuPoster(poster, container.dataset.fallbackImageUrl);
+      poster.src = container.dataset.imageUrl;
+    });
     hydrateVisibleMenuPreviews();
     menuGrid.querySelectorAll('.menu-card').forEach((button) => {
       button.addEventListener('click', () => chooseItem(button.dataset.menuId));
