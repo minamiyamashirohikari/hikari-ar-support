@@ -1,9 +1,10 @@
 (function () {
   const priorityModels = new Set([
     'shoyu_ramen', 'miso_ramen', 'beef_curry', 'hamburg_steak', 'omurice',
-    'fried_chicken_plate', 'udon', 'gyudon', 'katsudon', 'spaghetti'
+    'fried_chicken_plate', 'udon', 'gyudon', 'katsudon', 'spaghetti',
+    'sushi', 'grilled_fish', 'tempura', 'hamburger', 'sandwich', 'onigiri'
   ]);
-  const revision = '?v=20260721-benchmarkphoto2';
+  const revision = '?v=20260722-photoreal3d11';
 
   for (const id of window.REAL_MODEL_TARGETS || []) {
     const folder = priorityModels.has(id) ? 'models_high_quality' : 'models';

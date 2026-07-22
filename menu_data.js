@@ -31,7 +31,13 @@
     udon: 'assets/photos/udon.png',
     gyudon: 'assets/photos/gyudon.png',
     katsudon: 'assets/photos/katsudon.png',
-    spaghetti: 'assets/photos/spaghetti.png'
+    spaghetti: 'assets/photos/spaghetti.png',
+    sushi: 'assets/photos/sushi.png',
+    grilled_fish: 'assets/photos/grilled_fish.png',
+    tempura: 'assets/photos/tempura.png',
+    hamburger: 'assets/photos/hamburger.png',
+    sandwich: 'assets/photos/sandwich.png',
+    onigiri: 'assets/photos/onigiri.png'
   };
 
   function svgFood(item) {
