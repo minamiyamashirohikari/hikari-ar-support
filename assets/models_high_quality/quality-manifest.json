@@ -1,5 +1,5 @@
 {
-  "release": "20260728-foodmatch13",
+  "release": "20260728-fooddetail14",
   "appearancePolicy": "Each assets/photos/<id>.png file is the locked menu reference. The selected 3D model must preserve the same dish identity, ingredients, color balance, portion, and plating; menu cards remain stable photographs while the detail view reveals the corresponding volumetric model.",
   "geometryPolicy": "Every approved GLB must contain true volumetric geometry that remains recognizable from front, side, and rear views. Flat cards and single-view image planes are prohibited.",
   "models": [
@@ -19,7 +19,7 @@
     {"id":"ebi_fry","method":"composedLicensedPhotogrammetry","sourceUids":["382be6710803495da6cc2035967f9648","ce04e69a9112425daf58c22f67d54fdf"],"modelBytes":14665236,"modelSha256":"7ca1205d7d0a7c52d04281022c06bbda4fd0fb6fd67e44be819da111c71bef88","photoSha256":"1b56409e6b36942aff775c1611849587a1a04483f7310763f6d5af862910878a"},
     {"id":"hamburger","method":"generatedPhotoMultiviewMeshWithPlate","modelBytes":7750348,"modelSha256":"b6c99896d6917a80e981dbf066e0150eb71212b4846f132a10ffc21706852ff7","photoSha256":"440182698b4ffe99674bd2d43eff407f3f8bc9092f768e80faab6def6946e382"},
     {"id":"sandwich","method":"licensedPhotogrammetryWithPlate","sourceUids":["a2650310ca8b4e88bd5ea6aca7dd818d"],"modelBytes":8627192,"modelSha256":"53575b753b2cd6df46d15984c0dbff6df071e6dcee34fb8f9786a28201315122","photoSha256":"a3e17299a573cc151821e051f9c0153227e37172efaf4986b9289c1289004199"},
-    {"id":"sandwich2","method":"separatedFourViewPhotoDenseVolume","modelBytes":5208736,"modelSha256":"91af8bc795bc5cb9765e4ba19ece415ae15a2536a247553152d527bec9dd03e0","photoSha256":"fa45062c9917d0031052bcbb6736c15fa9def3bc0a135273668302769e320450"},
-    {"id":"onigiri","method":"separatedFourViewPhotoDenseVolume","modelBytes":5008780,"modelSha256":"940b5708c94e33df92634fb9765efcada9e52f53f6647d1636d537f251b30a89","photoSha256":"8ae6574b8a1440e9ea5c033474850025ed349b18decb199f97a150eaccc8e847"}
+    {"id":"sandwich2","method":"denseFourViewPhotoPbrNormalMappedVolumeWithProceduralPlate","modelBytes":11134932,"modelSha256":"6167a890a68f0556d64f2d22859d9d5834dc486c728baba0d577cd66fc1d2547","photoSha256":"fa45062c9917d0031052bcbb6736c15fa9def3bc0a135273668302769e320450"},
+    {"id":"onigiri","method":"denseFourViewPhotoPbrNormalMappedVolumeWithProceduralPlate","modelBytes":10556024,"modelSha256":"0145744116a472c3603543032607ab1518b764d26c5068b1b904186a704d3c8f","photoSha256":"8ae6574b8a1440e9ea5c033474850025ed349b18decb199f97a150eaccc8e847"}
   ]
 }

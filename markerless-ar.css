@@ -358,7 +358,10 @@ h2 { margin-bottom: 0; font-size: clamp(20px, 2.5vw, 29px); letter-spacing: -.03
 .menu-model .menu-photo {
   grid-area: 1 / 1;
   display: block;
-  object-fit: cover;
+  box-sizing: border-box;
+  object-fit: contain;
+  object-position: center;
+  padding: 6px;
 }
 .menu-model model-viewer {
   grid-area: 1 / 1;
