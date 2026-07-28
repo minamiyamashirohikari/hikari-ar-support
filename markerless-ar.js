@@ -6,7 +6,6 @@
     'shoyu_ramen', 'miso_ramen', 'gyudon', 'katsudon', 'beef_curry',
     'hamburg_steak', 'omurice', 'fried_chicken_plate', 'udon', 'spaghetti'
   ];
-  const DESKTOP_MENU_PREVIEW_LIMIT = 4;
   const items = Array.isArray(window.MENU_ITEMS) ? window.MENU_ITEMS : [];
   const categories = Array.isArray(window.MENU_CATEGORIES) ? window.MENU_CATEGORIES : [];
   const byId = new Map(items.map((item) => [item.id, item]));
@@ -41,7 +40,6 @@
     || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const isIPhone = /iPhone|iPod/i.test(navigator.userAgent);
   const isAndroid = /Android/i.test(navigator.userAgent);
-  const menuPreviewLimit = (isIPhone || isIPad || isAndroid) ? 1 : DESKTOP_MENU_PREVIEW_LIMIT;
   if (!isIPhone) viewer.removeAttribute('ar');
 
   let activeChoice = 0;
@@ -55,8 +53,6 @@
   let viewerLoadTimer = 0;
   let viewerReady = false;
   let pairModelReady = false;
-  let menuPreviewObserver = null;
-  let visibleMenuPreviews = new Set();
   let nativeArSupported = false;
   let cameraStream = null;
   let cameraFacing = 'environment';
@@ -243,49 +239,6 @@
     });
   }
 
-  function hydrateMenuPreview(container) {
-    if (container.dataset.hydrated === 'true' || container.dataset.modelFailed === 'true') return;
-    if (!container.dataset.posterLabel) {
-      container.dataset.posterLabel = container.getAttribute('aria-label') || `${container.dataset.modelAlt}の料理写真`;
-    }
-    const model = document.createElement('model-viewer');
-    const attributes = {
-      src: container.dataset.modelUrl,
-      alt: container.dataset.modelAlt,
-      loading: 'eager',
-      reveal: 'auto',
-      'interaction-prompt': 'none',
-      'camera-orbit': '20deg 62deg 3.1m',
-      'field-of-view': '30deg',
-      exposure: '1.05',
-      'shadow-intensity': '.55',
-      'shadow-softness': '1',
-      'disable-pan': '',
-      'disable-zoom': ''
-    };
-    Object.entries(attributes).forEach(([name, value]) => model.setAttribute(name, value));
-    model.addEventListener('error', () => {
-      if (!container.contains(model)) return;
-      container.dataset.modelFailed = 'true';
-      dehydrateMenuPreview(container);
-    }, { once: true });
-    container.dataset.hydrated = 'true';
-    container.removeAttribute('role');
-    container.removeAttribute('aria-label');
-    container.replaceChildren(model);
-  }
-
-  function createMenuPoster(container) {
-    const poster = document.createElement('img');
-    poster.className = 'menu-photo';
-    poster.alt = '';
-    poster.loading = 'lazy';
-    poster.decoding = 'async';
-    armMenuPoster(poster, container.dataset.fallbackImageUrl);
-    poster.src = container.dataset.imageUrl;
-    return poster;
-  }
-
   function armMenuPoster(poster, fallbackUrl) {
     if (!fallbackUrl) return;
     poster.addEventListener('error', () => {
@@ -295,69 +248,26 @@
     }, { once: true });
   }
 
-  function dehydrateMenuPreview(container) {
-    if (container.dataset.hydrated !== 'true') return;
-    container.dataset.hydrated = 'false';
-    container.setAttribute('role', 'img');
-    container.setAttribute('aria-label', container.dataset.posterLabel || `${container.dataset.modelAlt}の料理写真`);
-    container.replaceChildren(createMenuPoster(container));
-  }
-
-  function releaseMenuPreviews() {
-    if (menuPreviewObserver) menuPreviewObserver.disconnect();
-    visibleMenuPreviews.clear();
-    menuGrid.querySelectorAll('.menu-model').forEach(dehydrateMenuPreview);
-  }
-
-  function hydrateVisibleMenuPreviews() {
-    if (menuPreviewObserver) menuPreviewObserver.disconnect();
-    const previews = menuGrid.querySelectorAll('.menu-model');
-    visibleMenuPreviews = new Set();
-    if (!('IntersectionObserver' in window)) {
-      Array.from(previews).slice(0, menuPreviewLimit).forEach(hydrateMenuPreview);
-      return;
-    }
-    // Keep mobile GPU memory stable by retaining card previews only near the viewport.
-    menuPreviewObserver = new window.IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) visibleMenuPreviews.add(entry.target);
-        else visibleMenuPreviews.delete(entry.target);
-      });
-      const viewportCenter = window.innerHeight / 2;
-      const keep = new Set([...visibleMenuPreviews]
-        .sort((left, right) => {
-          const leftBox = left.getBoundingClientRect();
-          const rightBox = right.getBoundingClientRect();
-          const leftDistance = Math.abs((leftBox.top + leftBox.bottom) / 2 - viewportCenter);
-          const rightDistance = Math.abs((rightBox.top + rightBox.bottom) / 2 - viewportCenter);
-          return leftDistance - rightDistance;
-        })
-        .slice(0, menuPreviewLimit));
-      previews.forEach((preview) => {
-        if (keep.has(preview)) hydrateMenuPreview(preview);
-        else dehydrateMenuPreview(preview);
-      });
-    }, { rootMargin: '160px 0px' });
-    previews.forEach((preview) => menuPreviewObserver.observe(preview));
-  }
-
   function renderMenu() {
     const visible = filteredItems();
     menuCount.textContent = `${visible.length}品を表示しています（全${items.length}品）`;
     if (!visible.length) {
-      if (menuPreviewObserver) menuPreviewObserver.disconnect();
       menuGrid.innerHTML = '<p>条件に合う料理がありません。</p>';
       return;
     }
     menuGrid.innerHTML = visible.map((item) => {
       const selectedIndex = selected.indexOf(item.id);
       const duplicate = selectedIndex !== -1 && selectedIndex !== activeChoice;
-      const thumbnailUrl = item.photoImage
-        ? `assets/menu-thumbnails/${item.id}.jpg`
+      const revision = item.modelUrl.includes('?')
+        ? item.modelUrl.slice(item.modelUrl.indexOf('?'))
+        : '';
+      const thumbnailUrl = item.modelUrl
+        ? `assets/model-posters/${item.id}.jpg${revision}`
         : item.image;
+      const fallbackUrl = item.photoImage || item.image;
       return `
         <button class="menu-card${selectedIndex !== -1 ? ' selected' : ''}" type="button" data-menu-id="${item.id}" aria-disabled="${duplicate}">
-          <span class="menu-model" data-model-url="${item.modelUrl}" data-image-url="${thumbnailUrl}" data-fallback-image-url="${item.image}" data-model-alt="${item.name}の立体" role="img" aria-label="${item.name}の料理写真">
+          <span class="menu-model" data-image-url="${thumbnailUrl}" data-fallback-image-url="${fallbackUrl}" role="img" aria-label="${item.name}の3D見本画像">
             <img class="menu-photo" alt="" loading="lazy" decoding="async">
           </span>
           <span class="menu-card-text">
@@ -371,7 +281,6 @@
       armMenuPoster(poster, container.dataset.fallbackImageUrl);
       poster.src = container.dataset.imageUrl;
     });
-    hydrateVisibleMenuPreviews();
     menuGrid.querySelectorAll('.menu-card').forEach((button) => {
       button.addEventListener('click', () => chooseItem(button.dataset.menuId));
     });
@@ -641,7 +550,6 @@
     cameraArNames.textContent = `${left.name} と ${right.name}`;
     cameraArViewer.setAttribute('alt', `${left.name}と${right.name}をカメラ映像に重ねた立体比較`);
     cameraArViewer.setAttribute('touch-action', 'none');
-    releaseMenuPreviews();
     cameraArModelHost.appendChild(cameraArViewer);
     applyCameraDistance();
     cameraArOverlay.hidden = false;
@@ -661,7 +569,6 @@
     cameraModelReady = false;
     document.getElementById('retryCameraArButton').hidden = true;
     if (restoreFocus) {
-      hydrateVisibleMenuPreviews();
       simpleCameraArButton.focus();
     }
   }
@@ -831,7 +738,6 @@
   });
 
   window.addEventListener('pagehide', () => {
-    if (menuPreviewObserver) menuPreviewObserver.disconnect();
     clearViewerLoadTimer();
     closeCameraAr(false);
     if (pairObjectUrl) URL.revokeObjectURL(pairObjectUrl);
