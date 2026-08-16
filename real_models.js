@@ -44,6 +44,7 @@
     'toast',
     'gyoza',
     'fried_rice',
+    'chukadon',
     'mapo_tofu',
     'harumaki',
     'osechi',

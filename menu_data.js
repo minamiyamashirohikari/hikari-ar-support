@@ -39,7 +39,8 @@
     sandwich: 'assets/photos/sandwich.png',
     sandwich2: 'assets/photos/sandwich2.png',
     ebi_fry: 'assets/photos/ebi_fry.png',
-    onigiri: 'assets/photos/onigiri.png'
+    onigiri: 'assets/photos/onigiri.png',
+    chukadon: 'assets/photos/chukadon.png'
   };
 
   function svgFood(item) {
@@ -244,6 +245,7 @@
 
     ['gyoza', '餃子', 'ぎょうざ', 'chinese', '🥟', ['中華', '焼き目', '人気']],
     ['fried_rice', 'チャーハン', 'ちゃーはん', 'chinese', '🍚', ['ごはん', '中華', '香ばしい']],
+    ['chukadon', '中華丼', 'ちゅうかどん', 'chinese', '🍚', ['ごはん', '中華', 'とろみ']],
     ['mapo_tofu', '麻婆豆腐', 'まーぼーどうふ', 'chinese', '🥘', ['豆腐', '中華', 'とろみ']],
     ['harumaki', '春巻き', 'はるまき', 'chinese', '🥠', ['サクサク', '中華', '揚げ物']],
 
