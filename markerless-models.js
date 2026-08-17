@@ -5,7 +5,7 @@
     'sushi', 'grilled_fish', 'tempura', 'ebi_fry', 'hamburger', 'sandwich',
     'sandwich2', 'onigiri', 'chukadon'
   ]);
-  const revision = '?v=20260817-gyudonrim38';
+  const revision = '?v=20260817-gyudonfit39';
 
   for (const id of window.REAL_MODEL_TARGETS || []) {
     const folder = priorityModels.has(id) ? 'models_high_quality' : 'models';
