@@ -1,11 +1,11 @@
 {
-  "release": "20260817-gyudonquality21",
+  "release": "20260817-gyudonrim38",
   "appearancePolicy": "Each assets/photos/<id>.png file is the locked menu reference. The selected 3D model must preserve the same dish identity, ingredients, color balance, portion, and plating; menu cards remain stable photographs while the detail view reveals the corresponding volumetric model.",
   "geometryPolicy": "Every approved GLB must contain true volumetric geometry that remains recognizable from front, side, and rear views. Flat cards and single-view image planes are prohibited.",
   "models": [
     {"id":"shoyu_ramen","method":"generatedPhotoDepthRelief","modelBytes":9221240,"modelSha256":"14b4b9b43abebd2c92b0a60068638e5fc1b1d0dac88b5e683fb3d1afec45dd63","photoSha256":"da82def47f727a1d74c99c17ffe9fb68d2e5eb158926892f53f601a4482e60ba"},
     {"id":"miso_ramen","method":"generatedPhotoDepthRelief","modelBytes":9365292,"modelSha256":"fda9ab7f5bb2bdbd4e4b3c783280039eed359c35de587e9a93ce3457259664da","photoSha256":"1ff29e16d0241269f926ee008174779b02e158501b41b80097c014c5b90a0475"},
-    {"id":"gyudon","method":"photoLockedFourViewNeuralVolumeWithSemanticCeramicVesselAndIndependentRiceGeometry","modelBytes":11358208,"modelSha256":"cebea1d6b7b722903576e181458743182dc13f702038bb99e89000f4f8623e58","photoSha256":"1f2601e99f6904aad9f0543df76f75b386e97db6b2b872a85c549ad47aa92938"},
+    {"id":"gyudon","method":"lockedReferenceFourViewDenseVolumeWithReferencePatternVesselAndHeightAwareAllVertexRimGuard","modelBytes":11212928,"modelSha256":"b6bc6cda54a24b6d07bfcdb32dad1b2ae116c4b9aa11c4dff5c505091cfa63ba","photoSha256":"1f2601e99f6904aad9f0543df76f75b386e97db6b2b872a85c549ad47aa92938"},
     {"id":"katsudon","method":"generatedPhotoDepthRelief","modelBytes":9234392,"modelSha256":"f661b116b067c940692f6ddc0e5cf01a28b1911afcf75cfccf7037372c8ec52c","photoSha256":"f4b4992c86c4cd8b652c15f4456026969ed5c78a24be7ce8a0c8a858d879f533"},
     {"id":"beef_curry","method":"generatedPhotoDepthRelief","modelBytes":9012708,"modelSha256":"a97414f5c6fd3ee051855bbbfbf5a52f23a1935bd97be794e9da7db92cba1cff","photoSha256":"71d1e5f88d2811d160a95f0ca3990bf7f2ebfc67c3b088448ddf62aaa7c43098"},
     {"id":"spaghetti","method":"separatedFourViewPhotoDenseVolume","modelBytes":5619516,"modelSha256":"cf987eb989d0097390cc59a98eb6fc1703f210139a09098951d060ce659d55d6","photoSha256":"7122a028f2f7d73321de2829c9c16d9eda8da63eaaf526e5a29e3bd3f289116b"},
