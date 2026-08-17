@@ -40,7 +40,8 @@
     || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const isIPhone = /iPhone|iPod/i.test(navigator.userAgent);
   const isAndroid = /Android/i.test(navigator.userAgent);
-  if (!isIPhone) viewer.removeAttribute('ar');
+  const supportsPlatformAr = isIPhone || isIPad || isAndroid;
+  if (!supportsPlatformAr) viewer.removeAttribute('ar');
 
   let activeChoice = 0;
   let activeCategory = 'favorites';
@@ -60,6 +61,9 @@
   let cameraModelReady = false;
   let cameraVideoReady = false;
   let cameraDistance = 1.18;
+  let cameraLandscape = window.innerWidth > window.innerHeight;
+  let cameraViewportTimer = 0;
+  let cameraRestartTimer = 0;
   let selected = readSelection();
   const simpleArRequested = new URLSearchParams(location.search).get('simpleAr') === '1';
   let simpleArAutoOpened = false;
@@ -302,7 +306,7 @@
   }
 
   function detectNativeArSupport() {
-    nativeArSupported = isIPhone && Boolean(viewer.canActivateAR);
+    nativeArSupported = supportsPlatformAr && Boolean(viewer.canActivateAR);
     updateArAvailability();
   }
 
@@ -318,11 +322,14 @@
     simpleCameraArButton.disabled = false;
     nativeArButton.hidden = true;
     if (nativeArSupported) {
-      browserArButton.textContent = 'iPhone標準ARを起動';
-      deviceNote.textContent = 'iPhone標準ARを優先します。料理を机に置き、端末を動かして横や斜めから確認できます。';
+      const platformLabel = isIPhone ? 'iPhone標準AR' : isIPad ? 'iPad標準AR' : 'AndroidブラウザAR';
+      browserArButton.textContent = `${platformLabel}を起動`;
+      deviceNote.textContent = isAndroid
+        ? '追加アプリを開かず、Chrome内のWebXRで料理を机に配置します。'
+        : `${platformLabel}を優先します。料理を机に置き、端末を動かして横や斜めから確認できます。`;
     } else {
       browserArButton.textContent = '空間ARを起動';
-      deviceNote.textContent = '追加アプリ不要の空間ARで、料理を机に固定して横や斜めから確認できます。';
+      deviceNote.textContent = '端末標準ARが使えないため、追加アプリ不要の共通空間ARを使用します。';
     }
   }
 
@@ -341,11 +348,11 @@
       return;
     }
     browserArButton.disabled = true;
-    setMessage('iPhone標準ARを起動しています');
+    setMessage(`${isAndroid ? 'AndroidブラウザAR' : isIPad ? 'iPad標準AR' : 'iPhone標準AR'}を起動しています`);
     try {
       await viewer.activateAR();
     } catch (_) {
-      setMessage('iPhone標準ARを開始できなかったため、空間ARへ切り替えます。', 'warning');
+      setMessage('端末標準ARを開始できなかったため、共通空間ARへ切り替えます。', 'warning');
       openSpatialAr();
     } finally {
       browserArButton.disabled = false;
@@ -398,6 +405,67 @@
     cameraArStatus.dataset.tone = tone;
   }
 
+  function isLandscapeCameraViewport() {
+    const viewport = window.visualViewport;
+    const width = viewport?.width || window.innerWidth;
+    const height = viewport?.height || window.innerHeight;
+    return width > height;
+  }
+
+  function refreshCameraViewerFraming() {
+    if (cameraArOverlay.hidden) return;
+    try {
+      const update = typeof cameraArViewer.updateFraming === 'function'
+        ? cameraArViewer.updateFraming()
+        : null;
+      if (update?.catch) update.catch(() => {});
+    } catch (_) {
+      // Older model-viewer releases still resize correctly through ResizeObserver.
+    }
+    window.requestAnimationFrame(() => {
+      applyCameraDistance();
+    });
+  }
+
+  function syncCameraViewport() {
+    const viewport = window.visualViewport;
+    const width = Math.max(1, Math.round(viewport?.width || window.innerWidth));
+    const height = Math.max(1, Math.round(viewport?.height || window.innerHeight));
+    cameraLandscape = width > height;
+    cameraArOverlay.dataset.orientation = cameraLandscape ? 'landscape' : 'portrait';
+    cameraArOverlay.style.setProperty('--camera-viewport-width', `${width}px`);
+    cameraArOverlay.style.setProperty('--camera-viewport-height', `${height}px`);
+    if (cameraArOverlay.hidden) return;
+    cameraArViewer.style.width = `${width}px`;
+    cameraArViewer.style.height = `${height}px`;
+    refreshCameraViewerFraming();
+  }
+
+  function restartCameraForOrientation() {
+    if (cameraArOverlay.hidden || !cameraStream) return;
+    if (cameraOpening) {
+      cameraRestartTimer = window.setTimeout(restartCameraForOrientation, 300);
+      return;
+    }
+    setCameraStatus('画面の向きに合わせてカメラを調整しています');
+    startCameraForOverlay();
+  }
+
+  function queueCameraViewportSync() {
+    window.clearTimeout(cameraViewportTimer);
+    cameraViewportTimer = window.setTimeout(() => {
+      const previousLandscape = cameraLandscape;
+      syncCameraViewport();
+      if (previousLandscape === cameraLandscape
+        || cameraArOverlay.hidden
+        || !cameraStream) return;
+      window.clearTimeout(cameraRestartTimer);
+      cameraRestartTimer = window.setTimeout(() => {
+        restartCameraForOrientation();
+      }, 360);
+    }, 180);
+  }
+
   function stopCameraStream() {
     if (cameraStream) cameraStream.getTracks().forEach((track) => track.stop());
     cameraStream = null;
@@ -433,13 +501,15 @@
   }
 
   async function requestCameraStream(facing) {
+    const landscape = isLandscapeCameraViewport();
     const attempts = [
       {
         audio: false,
         video: {
           facingMode: { ideal: facing },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
+          width: { ideal: landscape ? 1920 : 1080 },
+          height: { ideal: landscape ? 1080 : 1920 },
+          aspectRatio: { ideal: landscape ? 16 / 9 : 9 / 16 }
         }
       },
       { audio: false, video: { facingMode: facing } },
@@ -514,6 +584,7 @@
     await cameraArVideo.play();
     await waitForCameraVideo();
     cameraVideoReady = true;
+    syncCameraViewport();
     updateCameraReadyStatus();
   }
 
@@ -554,19 +625,24 @@
     cameraArViewer.setAttribute('alt', `${left.name}と${right.name}をカメラ映像に重ねた立体比較`);
     cameraArViewer.setAttribute('touch-action', 'none');
     cameraArModelHost.appendChild(cameraArViewer);
-    applyCameraDistance();
     cameraArOverlay.hidden = false;
     document.body.classList.add('camera-ar-open');
+    cameraLandscape = isLandscapeCameraViewport();
+    syncCameraViewport();
     setCameraStatus('カメラと料理の立体を準備しています');
     await startCameraForOverlay();
   }
 
   function closeCameraAr(restoreFocus = true) {
     stopCameraStream();
+    window.clearTimeout(cameraViewportTimer);
+    window.clearTimeout(cameraRestartTimer);
     cameraArOverlay.hidden = true;
     document.body.classList.remove('camera-ar-open');
     if (cameraArViewer.parentNode !== viewerHome) viewerHome.insertBefore(cameraArViewer, viewerHomeNext);
     cameraArViewer.setAttribute('touch-action', 'pan-y');
+    cameraArViewer.style.removeProperty('width');
+    cameraArViewer.style.removeProperty('height');
     cameraArViewer.setAttribute('camera-orbit', '0deg 62deg 1.25m');
     if (typeof cameraArViewer.jumpCameraToGoal === 'function') cameraArViewer.jumpCameraToGoal();
     cameraModelReady = false;
@@ -675,6 +751,14 @@
   document.getElementById('closeCameraArButton').addEventListener('click', () => closeCameraAr());
   document.getElementById('switchCameraArButton').addEventListener('click', switchCameraAr);
   document.getElementById('retryCameraArButton').addEventListener('click', startCameraForOverlay);
+  cameraArVideo.addEventListener('resize', queueCameraViewportSync);
+  window.addEventListener('resize', queueCameraViewportSync);
+  window.visualViewport?.addEventListener('resize', queueCameraViewportSync);
+  window.screen.orientation?.addEventListener('change', queueCameraViewportSync);
+  window.addEventListener('orientationchange', () => {
+    queueCameraViewportSync();
+    window.setTimeout(queueCameraViewportSync, 620);
+  });
   document.getElementById('cameraSizeDownButton').addEventListener('click', () => {
     cameraDistance = Math.min(2.4, cameraDistance + .16);
     applyCameraDistance();
@@ -737,7 +821,9 @@
     refreshPair();
     updateArAvailability();
     detectNativeArSupport();
-    window.setTimeout(updateArAvailability, 1200);
+    [1200, 3000, 6000].forEach((delay) => {
+      window.setTimeout(detectNativeArSupport, delay);
+    });
   });
 
   window.addEventListener('pagehide', () => {

@@ -427,6 +427,8 @@ body.camera-ar-open { overflow: hidden; touch-action: none; }
   position: fixed;
   z-index: 1000;
   inset: 0;
+  width: var(--camera-viewport-width, 100dvw);
+  height: var(--camera-viewport-height, 100dvh);
   overflow: hidden;
   color: #fff;
   background: #050908;
@@ -449,6 +451,8 @@ body.camera-ar-open { overflow: hidden; touch-action: none; }
   z-index: 1;
   width: 100%;
   height: 100%;
+  min-height: 0 !important;
+  max-height: none !important;
   background: transparent;
   --poster-color: transparent;
 }
@@ -516,6 +520,36 @@ body.camera-ar-open { overflow: hidden; touch-action: none; }
 .camera-ar-controls > div { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .camera-ar-controls button { min-width: 82px; }
 .camera-ar-controls button[hidden] { display: none; }
+
+.camera-ar-overlay[data-orientation="landscape"] .camera-ar-model-host #pairViewer,
+.camera-ar-overlay[data-orientation="landscape"] #cameraArVideo {
+  width: var(--camera-viewport-width, 100dvw) !important;
+  height: var(--camera-viewport-height, 100dvh) !important;
+}
+
+.camera-ar-overlay[data-orientation="landscape"] .camera-ar-header {
+  padding-top: max(8px, env(safe-area-inset-top));
+  padding-bottom: 8px;
+}
+
+.camera-ar-overlay[data-orientation="landscape"] .camera-ar-status {
+  top: calc(max(8px, env(safe-area-inset-top)) + 56px);
+  max-width: min(52vw, 520px);
+}
+
+.camera-ar-overlay[data-orientation="landscape"] .camera-ar-controls {
+  right: max(10px, env(safe-area-inset-right));
+  bottom: max(8px, env(safe-area-inset-bottom));
+  left: auto;
+  width: min(470px, calc(100% - 20px));
+  justify-items: end;
+  padding: 8px;
+}
+
+.camera-ar-overlay[data-orientation="landscape"] .camera-ar-controls > div {
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
 
 .noscript { margin: 20px; padding: 16px; background: #fff; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }

@@ -3,16 +3,19 @@
 
   const STORAGE_KEY = 'senshakuSelectedIds';
   const DEFAULT_IDS = ['miso_ramen', 'gyudon'];
-  const MODEL_TIMEOUT_MS = 20000;
-  const ENGINE_TIMEOUT_MS = 30000;
+  const MODEL_TIMEOUT_MS = 60000;
+  const ENGINE_TIMEOUT_MS = 60000;
   const HIT_PRIORITY = ['DETECTED_SURFACE', 'ESTIMATED_SURFACE', 'FEATURE_POINT', 'UNSPECIFIED'];
   const items = Array.isArray(window.MENU_ITEMS) ? window.MENU_ITEMS : [];
   const byId = new Map(items.map((item) => [item.id, item]));
-  const composer = window.HIKARI_GLB_COMPOSER;
 
   const scene = document.getElementById('xrScene');
   const camera = document.getElementById('arCamera');
   const pairEntity = document.getElementById('pairEntity');
+  const dishEntities = [
+    document.getElementById('leftDishEntity'),
+    document.getElementById('rightDishEntity')
+  ];
   const shadowCatcher = document.getElementById('shadowCatcher');
   const statusPill = document.getElementById('statusPill');
   const aimGuide = document.getElementById('aimGuide');
@@ -26,7 +29,8 @@
   const fatalDetail = document.getElementById('fatalDetail');
   const simpleArLink = document.getElementById('simpleArLink');
 
-  let pairObjectUrl = '';
+  let modelLoadTimer = 0;
+  let loadedDishCount = 0;
   let engineReady = false;
   let cameraStarted = false;
   let realityReady = false;
@@ -96,23 +100,95 @@
     return 'AR機能またはカメラを開始できませんでした。通信を確認し、SafariまたはChromeで開き直してください。';
   }
 
-  async function fetchBytes(url) {
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
-    try {
-      const response = await fetch(new URL(url, document.baseURI), {
-        cache: 'force-cache',
-        signal: controller.signal
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return new Uint8Array(await response.arrayBuffer());
-    } finally {
-      window.clearTimeout(timeout);
-    }
+  function clearModelLoadTimer() {
+    if (!modelLoadTimer) return;
+    window.clearTimeout(modelLoadTimer);
+    modelLoadTimer = 0;
   }
 
-  async function preparePairModel() {
-    if (!composer || !byId.size) {
+  function normalizeDishEntity(entity, offsetX, model) {
+    if (!entity?.object3D || !model || !window.THREE) {
+      throw new Error('Dish model is unavailable');
+    }
+    entity.object3D.position.set(0, 0, 0);
+    entity.object3D.rotation.set(0, 0, 0);
+    entity.object3D.scale.setScalar(1);
+    entity.object3D.updateMatrixWorld(true);
+    model.updateMatrixWorld(true);
+
+    const bounds = new window.THREE.Box3().setFromObject(model);
+    const size = bounds.getSize(new window.THREE.Vector3());
+    const center = bounds.getCenter(new window.THREE.Vector3());
+    const horizontalSpan = Math.max(size.x, size.z);
+    if (!Number.isFinite(horizontalSpan) || horizontalSpan <= 0) {
+      throw new Error('Dish model has invalid bounds');
+    }
+
+    const scale = 0.22 / horizontalSpan;
+    entity.object3D.scale.setScalar(scale);
+    entity.object3D.rotation.set(0, Math.PI, 0);
+    entity.object3D.position.set(
+      offsetX + center.x * scale,
+      -bounds.min.y * scale,
+      center.z * scale
+    );
+    entity.object3D.updateMatrixWorld(true);
+    model.traverse((object) => {
+      if (!object.isMesh) return;
+      object.castShadow = true;
+      object.receiveShadow = false;
+    });
+  }
+
+  function armModelLoadTimer(item) {
+    clearModelLoadTimer();
+    modelLoadTimer = window.setTimeout(() => {
+      showFatal(
+        `${item.name}の立体を読み込めませんでした`,
+        '通信を確認して「もう一度試す」を押してください。高品質モデルは変更せず再読み込みします。'
+      );
+    }, MODEL_TIMEOUT_MS);
+  }
+
+  function beginDishLoad(index) {
+    const item = byId.get(selected[index]);
+    const entity = dishEntities[index];
+    if (!item?.modelUrl || !entity) {
+      showFatal('料理の3Dモデルが見つかりません', '料理選択に戻り、別の2品を選んでください。');
+      return;
+    }
+    setStatus(`${item.name}を読み込んでいます（${index + 1}/2）`);
+    armModelLoadTimer(item);
+    entity.dataset.modelLoaded = 'false';
+    entity.setAttribute('gltf-model', new URL(item.modelUrl, document.baseURI).href);
+  }
+
+  function handleDishLoaded(index, event) {
+    const entity = dishEntities[index];
+    if (entity.dataset.modelLoaded === 'true' || fatalShown) return;
+    clearModelLoadTimer();
+    try {
+      normalizeDishEntity(entity, index === 0 ? -0.145 : 0.145, event.detail?.model);
+    } catch (_) {
+      showFatal('料理の立体を配置できませんでした', '画面を再読み込みしてください。改善しない場合は簡易カメラ表示をご利用ください。');
+      return;
+    }
+    entity.dataset.modelLoaded = 'true';
+    loadedDishCount += 1;
+    if (index === 0) {
+      beginDishLoad(1);
+      return;
+    }
+
+    modelReady = loadedDishCount === dishEntities.length;
+    pairEntity.object3D.visible = false;
+    if (engineReady && !cameraStarted) setStatus('「カメラを開始」を押してください', 'ready');
+    else if (realityReady && trackingNormal) setStatus('中央を机に合わせて「ここに置く」を押してください', 'ready');
+    updateControls();
+  }
+
+  function prepareDishModels() {
+    if (!byId.size) {
       showFatal('料理データを準備できませんでした', '画面を再読み込みしてください。改善しない場合は簡易カメラ表示をご利用ください。');
       return;
     }
@@ -122,23 +198,9 @@
       showFatal('料理の3Dモデルが見つかりません', '料理選択に戻り、別の2品を選んでください。');
       return;
     }
-    setStatus(`${left.name}と${right.name}を準備しています`);
-    try {
-      const [leftBytes, rightBytes] = await Promise.all([
-        fetchBytes(left.modelUrl),
-        fetchBytes(right.modelUrl)
-      ]);
-      const pairBytes = composer.mergeGlbs(leftBytes, rightBytes, {
-        leftId: selected[0],
-        rightId: selected[1]
-      });
-      pairObjectUrl = URL.createObjectURL(new Blob([pairBytes], { type: 'model/gltf-binary' }));
-      pairEntity.setAttribute('gltf-model', pairObjectUrl);
-    } catch (error) {
-      showFatal('料理の立体を読み込めませんでした', error?.name === 'AbortError'
-        ? '読み込みが時間内に完了しませんでした。通信を確認して、もう一度お試しください。'
-        : '3Dモデルの読み込みに失敗しました。通信を確認して、もう一度お試しください。');
-    }
+    loadedDishCount = 0;
+    setStatus(`${left.name}と${right.name}を順番に準備しています`);
+    beginDishLoad(0);
   }
 
   function markEngineReady() {
@@ -246,16 +308,16 @@
     setStatus(modelScale === 1 ? '実物大に戻しました' : `大きさ ${Math.round(modelScale * 100)}%`, 'ready');
   }
 
-  pairEntity.addEventListener('model-loaded', () => {
-    modelReady = true;
-    pairEntity.object3D.visible = false;
-    if (engineReady && !cameraStarted) setStatus('「カメラを開始」を押してください', 'ready');
-    else if (realityReady && trackingNormal) setStatus('中央を机に合わせて「ここに置く」を押してください', 'ready');
-    updateControls();
-  });
-
-  pairEntity.addEventListener('model-error', () => {
-    showFatal('料理の立体を表示できませんでした', '3Dモデルを読み直すため、「もう一度試す」を押してください。');
+  dishEntities.forEach((entity, index) => {
+    entity.addEventListener('model-loaded', (event) => handleDishLoaded(index, event));
+    entity.addEventListener('model-error', () => {
+      clearModelLoadTimer();
+      const item = byId.get(selected[index]);
+      showFatal(
+        `${item?.name || '料理'}の立体を表示できませんでした`,
+        '高品質モデルを読み直すため、「もう一度試す」を押してください。'
+      );
+    });
   });
 
   scene.addEventListener('camerastatuschange', (event) => {
@@ -313,14 +375,14 @@
   }, ENGINE_TIMEOUT_MS);
 
   window.addEventListener('pagehide', () => {
+    clearModelLoadTimer();
     try {
       window.XR8?.stop?.();
     } catch (_) {
       // The browser will release the camera when this page closes.
     }
-    if (pairObjectUrl) URL.revokeObjectURL(pairObjectUrl);
   });
 
-  preparePairModel();
+  prepareDishModels();
   updateControls();
 })();
