@@ -1,5 +1,5 @@
 {
-  "release": "20260817-chukadonfix16",
+  "release": "20260817-chukadonfix17",
   "appearancePolicy": "Each assets/photos/<id>.png file is the locked menu reference. The selected 3D model must preserve the same dish identity, ingredients, color balance, portion, and plating; menu cards remain stable photographs while the detail view reveals the corresponding volumetric model.",
   "geometryPolicy": "Every approved GLB must contain true volumetric geometry that remains recognizable from front, side, and rear views. Flat cards and single-view image planes are prohibited.",
   "models": [

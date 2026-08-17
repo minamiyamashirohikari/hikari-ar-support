@@ -227,7 +227,10 @@
   function filteredItems() {
     const query = searchInput.value.trim().toLocaleLowerCase('ja');
     return items.filter((item) => {
-      const categoryMatch = activeCategory === 'all'
+      // A typed search always covers all 53 dishes. Restricting it to the
+      // initially selected favorites category made valid dishes look missing.
+      const categoryMatch = Boolean(query)
+        || activeCategory === 'all'
         || (activeCategory === 'favorites' && FAVORITES.includes(item.id))
         || item.category === activeCategory;
       if (!categoryMatch) return false;
