@@ -13,7 +13,7 @@
   <script defer src="markerless-models.js?v=20260817-gyudonfit39"></script>
   <script defer src="menu_data.js?v=20260817-gyudonfit39"></script>
   <script defer src="glb-pair-composer.js?v=20260716-ipad2"></script>
-  <script defer src="markerless-ar-v210.js"></script>
+  <script defer src="markerless-ar-v211.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#menuGrid">料理一覧へ移動</a>
@@ -84,9 +84,9 @@
           空間ARを起動
         </button>
         <button class="simple-camera-button" id="simpleCameraArButton" type="button" disabled hidden>
-          簡易カメラ表示
+          3Dカメラ比較
         </button>
-        <span>iPad・Androidは共通空間AR、iPhoneは標準ARを優先します</span>
+        <span>対応端末は空間AR、旧型iPadは高品質3Dカメラ比較を使用します</span>
       </div>
 
       <div class="choice-pair" aria-label="比較する料理">
@@ -138,10 +138,10 @@
       <li>料理はまず見える位置に表示されます。明るい机をゆっくり映してください。</li>
       <li>机を検出すると2品が自動で固定されます。「机に固定する」でも置き直せます。</li>
       <li>端末を動かすと、料理を横や斜めから確認できます。</li>
-      <li>iPadOS 15では、よく使う10品と中華丼の組み合わせをiPad標準ARで表示します。</li>
+      <li>iPadOS 16.4未満では「3Dカメラ比較」で、高品質な2品をカメラ映像の上に表示します。</li>
     </ol>
     <p>iPad・Androidは2品を別々に読み込む共通空間ARを使い、面検出前も料理を仮表示します。iPhoneは端末標準ARを優先します。追加アプリや印刷マーカーは必要ありません。</p>
-    <p>推奨環境はiOS・iPadOS 16.4以降のSafari、Androidの最新版Chromeです。iPadOS 15は事前生成済みの55組に対応します。</p>
+    <p>推奨環境はiOS・iPadOS 16.4以降のSafari、Androidの最新版Chromeです。旧型iPadの3Dカメラ比較は空間固定を行いません。</p>
     <p><a href="model-credits.html">3Dモデルの権利表記</a></p>
   </dialog>
 
@@ -172,7 +172,7 @@
     <header class="camera-ar-header">
       <button id="closeCameraArButton" type="button">閉じる</button>
       <div>
-        <strong id="cameraArTitle">カメラAR</strong>
+        <strong id="cameraArTitle">3Dカメラ比較</strong>
         <span id="cameraArNames"></span>
       </div>
       <button id="switchCameraArButton" type="button">カメラ切替</button>
