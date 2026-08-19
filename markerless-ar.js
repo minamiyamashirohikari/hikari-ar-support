@@ -455,6 +455,7 @@
     anchor.href = usdzUrl;
     const preview = document.createElement('img');
     preview.alt = '';
+    preview.src = 'data:image/gif;base64,R0lGODlhAQABAAAAACw=';
     anchor.appendChild(preview);
     document.body.appendChild(anchor);
     anchor.click();
