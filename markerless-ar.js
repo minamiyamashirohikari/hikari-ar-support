@@ -14,6 +14,7 @@
   // Use the same on-device composition path in development and on GitHub Pages.
   const preferLocalPair = Boolean(composer);
   const modelBufferCache = new Map();
+  const modelFetchControllers = new Map();
 
   const viewer = document.getElementById('pairViewer');
   const viewerMessage = document.getElementById('viewerMessage');
@@ -55,6 +56,9 @@
   let viewerReady = false;
   let pairModelReady = false;
   let nativeArSupported = false;
+  let nativeArAttempted = false;
+  let nativeArAttemptTimer = 0;
+  let spatialArOpening = false;
   let cameraStream = null;
   let cameraFacing = 'environment';
   let cameraOpening = false;
@@ -106,10 +110,39 @@
     viewerLoadTimer = 0;
   }
 
+  function clearNativeArAttempt() {
+    nativeArAttempted = false;
+    if (!nativeArAttemptTimer) return;
+    window.clearTimeout(nativeArAttemptTimer);
+    nativeArAttemptTimer = 0;
+  }
+
+  function beginNativeArAttempt() {
+    clearNativeArAttempt();
+    nativeArAttempted = true;
+    nativeArAttemptTimer = window.setTimeout(clearNativeArAttempt, 30000);
+  }
+
+  function releasePairResources() {
+    clearNativeArAttempt();
+    pairLoadRevision += 1;
+    expectedViewerRevision = pairLoadRevision;
+    expectedViewerSource = '';
+    pairModelReady = false;
+    clearViewerLoadTimer();
+    for (const controller of modelFetchControllers.values()) controller.abort();
+    modelFetchControllers.clear();
+    modelBufferCache.clear();
+    viewer.removeAttribute('src');
+    if (pairObjectUrl) URL.revokeObjectURL(pairObjectUrl);
+    pairObjectUrl = '';
+  }
+
   async function modelBytes(id) {
     if (!modelBufferCache.has(id)) {
       const item = byId.get(id);
       const controller = new AbortController();
+      modelFetchControllers.set(id, controller);
       const timeout = window.setTimeout(() => controller.abort(), 15000);
       const request = fetch(new URL(item.modelUrl, document.baseURI), {
         cache: 'force-cache',
@@ -124,7 +157,10 @@
           modelBufferCache.delete(id);
           throw error;
         })
-        .finally(() => window.clearTimeout(timeout));
+        .finally(() => {
+          window.clearTimeout(timeout);
+          if (modelFetchControllers.get(id) === controller) modelFetchControllers.delete(id);
+        });
       modelBufferCache.set(id, request);
     }
     return modelBufferCache.get(id);
@@ -208,6 +244,7 @@
     updateChoiceButtons();
     saveSelection();
     renderMenu();
+    updateArAvailability();
   }
 
   function categoryButtons() {
@@ -310,8 +347,15 @@
     updateArAvailability();
   }
 
+  function spatialSelectionReady() {
+    return selected.length === 2
+      && selected[0] !== selected[1]
+      && selected.every((id) => Boolean(byId.get(id)?.modelUrl));
+  }
+
   function updateArAvailability() {
-    if (!viewerReady || !pairModelReady) {
+    const sharedRouteReady = (isIPad || isAndroid) && spatialSelectionReady();
+    if (!sharedRouteReady && (!viewerReady || !pairModelReady)) {
       nativeArButton.hidden = true;
       browserArButton.disabled = true;
       simpleCameraArButton.disabled = true;
@@ -319,14 +363,15 @@
       return;
     }
     browserArButton.disabled = false;
-    simpleCameraArButton.disabled = false;
+    simpleCameraArButton.disabled = !pairModelReady;
     nativeArButton.hidden = true;
-    if (nativeArSupported) {
-      const platformLabel = isIPhone ? 'iPhone標準AR' : isIPad ? 'iPad標準AR' : 'AndroidブラウザAR';
+    if (isIPad || isAndroid) {
+      browserArButton.textContent = '空間ARを起動';
+      deviceNote.textContent = '2品を別々に読み込む共通ARで、料理をすぐ表示してから机へ固定します。';
+    } else if (nativeArSupported) {
+      const platformLabel = 'iPhone標準AR';
       browserArButton.textContent = `${platformLabel}を起動`;
-      deviceNote.textContent = isAndroid
-        ? '追加アプリを開かず、Chrome内のWebXRで料理を机に配置します。'
-        : `${platformLabel}を優先します。料理を机に置き、端末を動かして横や斜めから確認できます。`;
+      deviceNote.textContent = `${platformLabel}を優先します。料理を机に置き、端末を動かして横や斜めから確認できます。`;
     } else {
       browserArButton.textContent = '空間ARを起動';
       deviceNote.textContent = '端末標準ARが使えないため、追加アプリ不要の共通空間ARを使用します。';
@@ -334,24 +379,33 @@
   }
 
   function openSpatialAr() {
-    if (!pairModelReady) return;
+    if (!spatialSelectionReady() || spatialArOpening) return;
+    spatialArOpening = true;
     const url = new URL('spatial-ar.html', document.baseURI);
+    url.searchParams.set('v', '20260819-spatial41');
     url.searchParams.set('left', selected[0]);
     url.searchParams.set('right', selected[1]);
+    releasePairResources();
     location.href = url.href;
   }
 
   async function openPreferredAr() {
-    if (!pairModelReady) return;
-    if (!nativeArSupported) {
+    // The shared route keeps the two selected GLBs separate and can show a
+    // camera-relative preview before surface tracking settles. This is more
+    // reliable than converting a large merged Blob in iPad Quick Look or
+    // waiting indefinitely for Android WebXR floor placement.
+    if (isIPad || isAndroid || !nativeArSupported) {
       openSpatialAr();
       return;
     }
+    if (!pairModelReady) return;
     browserArButton.disabled = true;
-    setMessage(`${isAndroid ? 'AndroidブラウザAR' : isIPad ? 'iPad標準AR' : 'iPhone標準AR'}を起動しています`);
+    setMessage('iPhone標準ARを起動しています');
+    beginNativeArAttempt();
     try {
       await viewer.activateAR();
     } catch (_) {
+      clearNativeArAttempt();
       setMessage('端末標準ARを開始できなかったため、共通空間ARへ切り替えます。', 'warning');
       openSpatialAr();
     } finally {
@@ -721,6 +775,11 @@
       'not-presenting': '3D比較画面に戻りました'
     };
     if (messages[event.detail.status]) setMessage(messages[event.detail.status], event.detail.status === 'failed' ? 'warning' : 'normal');
+    if (event.detail.status === 'failed' && nativeArAttempted) {
+      clearNativeArAttempt();
+      window.setTimeout(openSpatialAr, 0);
+    }
+    if (['session-started', 'object-placed', 'not-presenting'].includes(event.detail.status)) clearNativeArAttempt();
   });
 
   cameraArViewer.addEventListener('load', () => {
@@ -827,8 +886,14 @@
   });
 
   window.addEventListener('pagehide', () => {
-    clearViewerLoadTimer();
     closeCameraAr(false);
-    if (pairObjectUrl) URL.revokeObjectURL(pairObjectUrl);
+    releasePairResources();
+  });
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+      location.reload();
+      return;
+    }
+    spatialArOpening = false;
   });
 })();

@@ -6,14 +6,14 @@
   <meta name="theme-color" content="#f3eadc">
   <meta name="description" content="障害者支援施設での食事選択を支援する、マーカー不要の3D・AR比較ツールです。">
   <title>食事をARでくらべる | ひかり意思決定支援</title>
-  <link rel="stylesheet" href="markerless-ar.css?v=20260817-crossdevice40">
+  <link rel="stylesheet" href="markerless-ar.css?v=20260819-spatial41">
   <script type="module" src="vendor/model-viewer-4.3.1.min.js"></script>
   <script defer src="vendor/qrcode-1.0.0.min.js"></script>
   <script defer src="real_models.js?v=20260817-gyudonfit39"></script>
   <script defer src="markerless-models.js?v=20260817-gyudonfit39"></script>
   <script defer src="menu_data.js?v=20260817-gyudonfit39"></script>
   <script defer src="glb-pair-composer.js?v=20260716-ipad2"></script>
-  <script defer src="markerless-ar.js?v=20260817-crossdevice40"></script>
+  <script defer src="markerless-ar.js?v=20260819-spatial41"></script>
 </head>
 <body>
   <a class="skip-link" href="#menuGrid">料理一覧へ移動</a>
@@ -86,7 +86,7 @@
         <button class="simple-camera-button" id="simpleCameraArButton" type="button" disabled>
           簡易カメラ表示
         </button>
-        <span>iPhone・iPadは標準AR、Androidはアプリ不要のブラウザARを優先します</span>
+        <span>iPad・Androidは共通空間AR、iPhoneは標準ARを優先します</span>
       </div>
 
       <div class="choice-pair" aria-label="比較する料理">
@@ -134,13 +134,13 @@
     </div>
     <ol>
       <li>候補1と候補2の料理を選びます。</li>
-      <li>iPhone・iPadは「標準ARを起動」、Androidは「ブラウザARを起動」を押します。</li>
-      <li>明るい机をゆっくり映し、中央を合わせます。</li>
-      <li>「ここに置く」を押すと、2品がその場所に固定されます。</li>
+      <li>「空間ARを起動」を押し、続けてカメラを開始します。</li>
+      <li>料理はまず見える位置に表示されます。明るい机をゆっくり映してください。</li>
+      <li>机を検出すると2品が自動で固定されます。「机に固定する」でも置き直せます。</li>
       <li>端末を動かすと、料理を横や斜めから確認できます。</li>
       <li>開始できない端末だけ「簡易カメラ表示」を使用します。</li>
     </ol>
-    <p>iPhone・iPadは端末標準AR、AndroidはWebXRを優先し、対応外の場合だけ共通の空間ARへ切り替えます。追加アプリや印刷マーカーは必要ありません。</p>
+    <p>iPad・Androidは2品を別々に読み込む共通空間ARを使い、面検出前も料理を仮表示します。iPhoneは端末標準ARを優先します。追加アプリや印刷マーカーは必要ありません。</p>
     <p>推奨環境はiOS・iPadOS 16.4以降のSafari、Androidの最新版Chromeです。対応外の場合は「簡易カメラ表示」を利用できます。</p>
     <p><a href="model-credits.html">3Dモデルの権利表記</a></p>
   </dialog>

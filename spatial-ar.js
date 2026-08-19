@@ -5,7 +5,12 @@
   const DEFAULT_IDS = ['miso_ramen', 'gyudon'];
   const MODEL_TIMEOUT_MS = 60000;
   const ENGINE_TIMEOUT_MS = 60000;
-  const HIT_PRIORITY = ['DETECTED_SURFACE', 'ESTIMATED_SURFACE', 'FEATURE_POINT', 'UNSPECIFIED'];
+  const REALITY_TIMEOUT_MS = 30000;
+  const HIT_TEST_TYPES = ['DETECTED_SURFACE', 'ESTIMATED_SURFACE', 'FEATURE_POINT'];
+  const HIT_PRIORITY = [...HIT_TEST_TYPES, 'UNSPECIFIED'];
+  const PREVIEW_SURFACE_PROBE_MS = 450;
+  const SURFACE_STABILITY_SAMPLES = 3;
+  const SURFACE_STABILITY_DISTANCE = 0.12;
   const items = Array.isArray(window.MENU_ITEMS) ? window.MENU_ITEMS : [];
   const byId = new Map(items.map((item) => [item.id, item]));
 
@@ -30,6 +35,7 @@
   const simpleArLink = document.getElementById('simpleArLink');
 
   let modelLoadTimer = 0;
+  let realityReadyTimer = 0;
   let loadedDishCount = 0;
   let engineReady = false;
   let cameraStarted = false;
@@ -37,8 +43,17 @@
   let trackingNormal = false;
   let modelReady = false;
   let placed = false;
+  let placementMode = 'none';
   let modelScale = 1;
   let fatalShown = false;
+  let previewAnimationFrame = 0;
+  let lastSurfaceProbeAt = 0;
+  let previewWorldPosition = null;
+  let previewCameraPosition = null;
+  let previewOrientation = null;
+  let previewOffset = null;
+  let stableSurfaceHit = null;
+  let stableSurfaceHitCount = 0;
 
   function selectedIds() {
     const params = new URLSearchParams(location.search);
@@ -61,8 +76,24 @@
     statusPill.dataset.tone = tone;
   }
 
+  function clearRealityReadyTimer() {
+    if (!realityReadyTimer) return;
+    window.clearTimeout(realityReadyTimer);
+    realityReadyTimer = 0;
+  }
+
+  function setEntityVisible(entity, visible) {
+    if (!entity) return;
+    if (entity.getAttribute('visible') !== visible) entity.setAttribute('visible', visible);
+    if (entity.object3D && entity.object3D.visible !== visible) entity.object3D.visible = visible;
+  }
+
+  function canShowPair() {
+    return cameraStarted && realityReady && modelReady && !fatalShown;
+  }
+
   function updateControls() {
-    const canPlace = cameraStarted && realityReady && trackingNormal && modelReady && !fatalShown;
+    const canPlace = canShowPair() && trackingNormal;
     placeButton.disabled = !canPlace;
     recenterButton.disabled = !cameraStarted || fatalShown;
     aimGuide.dataset.visible = String(canPlace);
@@ -73,6 +104,8 @@
   function showFatal(title, detail) {
     if (fatalShown) return;
     fatalShown = true;
+    clearRealityReadyTimer();
+    stopPreviewLoop();
     fatalTitle.textContent = title;
     fatalDetail.textContent = detail;
     const fallback = new URL('./', document.baseURI);
@@ -181,10 +214,11 @@
     }
 
     modelReady = loadedDishCount === dishEntities.length;
-    pairEntity.object3D.visible = false;
+    setEntityVisible(pairEntity, false);
     if (engineReady && !cameraStarted) setStatus('「カメラを開始」を押してください', 'ready');
     else if (realityReady && trackingNormal) setStatus('中央を机に合わせて「ここに置く」を押してください', 'ready');
     updateControls();
+    ensurePreviewVisible();
   }
 
   function prepareDishModels() {
@@ -217,6 +251,7 @@
     startCameraButton.disabled = true;
     startCameraButton.textContent = 'カメラを起動しています';
     setStatus('カメラの許可を確認しています');
+    clearRealityReadyTimer();
     try {
       scene.setAttribute('xrweb', 'allowedDevices: any; scale: absolute');
     } catch (error) {
@@ -224,14 +259,27 @@
     }
   }
 
-  function bestHit(results) {
+  function armRealityReadyTimer() {
+    if (realityReady || fatalShown || realityReadyTimer) return;
+    realityReadyTimer = window.setTimeout(() => {
+      if (!realityReady && !fatalShown) {
+        showFatal(
+          'カメラは起動しましたが、空間認識を開始できませんでした',
+          'SafariまたはChromeを開き直すか、簡易カメラ表示をご利用ください。'
+        );
+      }
+    }, REALITY_TIMEOUT_MS);
+  }
+
+  function bestHit(results, { surfaceOnly = false, maxDistance = 4 } = {}) {
     const usable = (Array.isArray(results) ? results : []).filter((result) => {
       const position = result?.position;
       return position
         && Number.isFinite(position.x)
         && Number.isFinite(position.y)
         && Number.isFinite(position.z)
-        && (!Number.isFinite(result.distance) || (result.distance >= 0.18 && result.distance <= 4));
+        && (!surfaceOnly || result.type === 'DETECTED_SURFACE' || result.type === 'ESTIMATED_SURFACE')
+        && (!Number.isFinite(result.distance) || (result.distance > 0 && result.distance <= maxDistance));
     });
     usable.sort((left, right) => {
       const leftPriority = HIT_PRIORITY.indexOf(left.type);
@@ -246,9 +294,9 @@
 
   function faceCurrentCamera(position) {
     if (!camera?.object3D || !window.THREE) return 0;
-    const cameraPosition = new window.THREE.Vector3();
-    camera.object3D.getWorldPosition(cameraPosition);
-    return Math.atan2(cameraPosition.x - position.x, cameraPosition.z - position.z) * 180 / Math.PI;
+    previewCameraPosition ||= new window.THREE.Vector3();
+    camera.object3D.getWorldPosition(previewCameraPosition);
+    return Math.atan2(previewCameraPosition.x - position.x, previewCameraPosition.z - position.z) * 180 / Math.PI;
   }
 
   function applyScale() {
@@ -256,43 +304,162 @@
     shadowCatcher.object3D.scale.setScalar(modelScale);
   }
 
-  function placeAtCenter() {
-    if (placeButton.disabled || !window.XR8?.XrController?.hitTest) return;
+  function hitAtCenter(options) {
+    if (!window.XR8?.XrController?.hitTest) return null;
     let results = [];
     try {
-      results = window.XR8.XrController.hitTest(0.5, 0.54, ['FEATURE_POINT']);
+      results = window.XR8.XrController.hitTest(0.5, 0.54, HIT_TEST_TYPES);
     } catch (_) {
       results = [];
     }
-    const hit = bestHit(results);
-    if (!hit) {
-      setStatus('机をゆっくり左右に映してから、もう一度押してください', 'warning');
-      return;
+    return bestHit(results, options);
+  }
+
+  function previewPosition() {
+    if (!camera?.object3D || !window.THREE) return null;
+    previewWorldPosition ||= new window.THREE.Vector3();
+    previewOrientation ||= new window.THREE.Quaternion();
+    previewOffset ||= new window.THREE.Vector3();
+    camera.object3D.getWorldPosition(previewWorldPosition);
+    camera.object3D.getWorldQuaternion(previewOrientation);
+    previewOffset.set(0, -0.16, -0.82).applyQuaternion(previewOrientation);
+    return previewWorldPosition.add(previewOffset);
+  }
+
+  function updatePreviewPose() {
+    if (placementMode !== 'preview' || !canShowPair()) return false;
+    const position = previewPosition();
+    if (!position) return false;
+    pairEntity.object3D.position.copy(position);
+    pairEntity.object3D.rotation.set(0, faceCurrentCamera(position) * Math.PI / 180, 0);
+    setEntityVisible(pairEntity, true);
+    setEntityVisible(shadowCatcher, false);
+    applyScale();
+    return true;
+  }
+
+  function showCameraPreview() {
+    if (!canShowPair() || placed) return false;
+    const enteringPreview = placementMode !== 'preview';
+    placementMode = 'preview';
+    if (enteringPreview) resetSurfaceStability();
+    placeButton.textContent = '机に固定する';
+    const shown = updatePreviewPose();
+    if (shown) {
+      setStatus('料理を仮表示しました。机をゆっくり映すと自動で固定します', 'warning');
+      startPreviewLoop();
     }
+    updateControls();
+    return shown;
+  }
+
+  function ensurePreviewVisible() {
+    if (!canShowPair() || placed || placementMode === 'surface') return;
+    showCameraPreview();
+  }
+
+  function anchorPair(hit, automatic = false) {
+    if (!hit?.position) return false;
 
     const position = hit.position;
     pairEntity.object3D.position.set(position.x, position.y + 0.006, position.z);
     pairEntity.object3D.rotation.set(0, faceCurrentCamera(position) * Math.PI / 180, 0);
-    pairEntity.object3D.visible = true;
+    setEntityVisible(pairEntity, true);
     shadowCatcher.object3D.position.set(position.x, position.y + 0.002, position.z);
     shadowCatcher.object3D.rotation.set(-Math.PI / 2, 0, 0);
-    shadowCatcher.object3D.visible = true;
+    setEntityVisible(shadowCatcher, true);
     applyScale();
     placed = true;
+    placementMode = 'surface';
+    resetSurfaceStability();
+    stopPreviewLoop();
     placeButton.textContent = 'ここに置き直す';
-    setStatus('料理を固定しました。端末を動かして横や斜めから確認できます', 'ready');
+    setStatus(automatic
+      ? '机を検出し、料理を自動で固定しました。端末を動かして確認できます'
+      : '料理を固定しました。端末を動かして横や斜めから確認できます', 'ready');
     updateControls();
+    return true;
+  }
+
+  function placeAtCenter() {
+    if (placeButton.disabled) return;
+    const hit = hitAtCenter({ maxDistance: 4 });
+    if (hit) {
+      anchorPair(hit);
+      return;
+    }
+    placed = false;
+    placementMode = 'preview';
+    resetSurfaceStability();
+    showCameraPreview();
+    setStatus('料理は見える位置に仮表示中です。机をゆっくり左右に映してください', 'warning');
+  }
+
+  function startPreviewLoop() {
+    if (previewAnimationFrame || placementMode !== 'preview' || !canShowPair()) return;
+    previewAnimationFrame = window.requestAnimationFrame(updatePreview);
+  }
+
+  function stopPreviewLoop() {
+    if (!previewAnimationFrame) return;
+    window.cancelAnimationFrame(previewAnimationFrame);
+    previewAnimationFrame = 0;
+  }
+
+  function resetSurfaceStability() {
+    stableSurfaceHit = null;
+    stableSurfaceHitCount = 0;
+  }
+
+  function stableSurfaceAnchor(hit) {
+    if (!hit?.position) {
+      resetSurfaceStability();
+      return null;
+    }
+    const previous = stableSurfaceHit?.position;
+    const delta = previous
+      ? Math.hypot(
+        hit.position.x - previous.x,
+        hit.position.y - previous.y,
+        hit.position.z - previous.z
+      )
+      : Infinity;
+    stableSurfaceHitCount = delta <= SURFACE_STABILITY_DISTANCE
+      ? stableSurfaceHitCount + 1
+      : 1;
+    stableSurfaceHit = {
+      ...hit,
+      position: { x: hit.position.x, y: hit.position.y, z: hit.position.z }
+    };
+    return stableSurfaceHitCount >= SURFACE_STABILITY_SAMPLES ? stableSurfaceHit : null;
+  }
+
+  function updatePreview(timestamp) {
+    previewAnimationFrame = 0;
+    if (placementMode === 'preview' && canShowPair()) {
+      updatePreviewPose();
+      if (trackingNormal && timestamp - lastSurfaceProbeAt >= PREVIEW_SURFACE_PROBE_MS) {
+        lastSurfaceProbeAt = timestamp;
+        const hit = hitAtCenter({ surfaceOnly: true, maxDistance: 3 });
+        const stableHit = stableSurfaceAnchor(hit);
+        if (stableHit) anchorPair(stableHit, true);
+      }
+    }
+    startPreviewLoop();
   }
 
   function recenter() {
     if (!cameraStarted || fatalShown) return;
-    pairEntity.object3D.visible = false;
-    shadowCatcher.object3D.visible = false;
     placed = false;
-    placeButton.textContent = 'ここに置く';
+    placementMode = 'preview';
+    resetSurfaceStability();
+    setEntityVisible(shadowCatcher, false);
+    placeButton.textContent = '机に固定する';
     sizeControls.hidden = true;
     trackingNormal = false;
-    setStatus('机をゆっくり映して、位置を取り直しています');
+    updatePreviewPose();
+    startPreviewLoop();
+    setStatus('料理を仮表示しながら、机の位置を取り直しています');
     try {
       window.XR8?.XrController?.recenter();
     } catch (_) {
@@ -323,33 +490,46 @@
   scene.addEventListener('camerastatuschange', (event) => {
     const status = event.detail?.status;
     if (status === 'requesting') setStatus('カメラの使用を許可してください');
-    if (status === 'hasStream') setStatus('カメラ映像を開始しています');
-    if (status === 'hasVideo') setStatus('机をゆっくり映してください');
+    if (status === 'hasStream') {
+      setStatus('カメラ映像を開始しています');
+      armRealityReadyTimer();
+    }
+    if (status === 'hasVideo') {
+      setStatus('机をゆっくり映してください');
+      armRealityReadyTimer();
+    }
     if (status === 'failed') showFatal('カメラを開始できませんでした', cameraErrorMessage(event.detail));
   });
 
   scene.addEventListener('realityready', () => {
+    clearRealityReadyTimer();
     realityReady = true;
     startGate.hidden = true;
-    setStatus(modelReady
-      ? '机をゆっくり映してください'
-      : 'カメラを開始しました。料理の立体を準備しています');
     updateControls();
+    ensurePreviewVisible();
+    if (!modelReady) setStatus('カメラを開始しました。料理の立体を準備しています');
   });
 
   scene.addEventListener('xrtrackingstatus', (event) => {
     trackingNormal = event.detail?.status === 'NORMAL';
+    ensurePreviewVisible();
     if (trackingNormal) {
-      setStatus(placed
-        ? '料理は空間に固定されています'
-        : '中央を机に合わせて「ここに置く」を押してください', 'ready');
+      if (placed) setStatus('料理は空間に固定されています', 'ready');
+      else if (placementMode === 'preview') {
+        setStatus('料理を仮表示中です。机を中央に映すと自動で固定します', 'warning');
+      } else {
+        setStatus('中央を机に合わせて「ここに置く」を押してください', 'ready');
+      }
     } else if (realityReady) {
-      setStatus('机の模様が見えるように、端末をゆっくり左右へ動かしてください', 'warning');
+      setStatus(modelReady
+        ? '料理を仮表示中です。机の模様が見えるように端末をゆっくり動かしてください'
+        : '料理の立体を準備しています', 'warning');
     }
     updateControls();
   });
 
   scene.addEventListener('realityerror', (event) => {
+    clearRealityReadyTimer();
     showFatal('空間ARを開始できませんでした', cameraErrorMessage(event.detail?.error || event.detail));
   });
 
@@ -376,11 +556,17 @@
 
   window.addEventListener('pagehide', () => {
     clearModelLoadTimer();
+    clearRealityReadyTimer();
+    stopPreviewLoop();
     try {
       window.XR8?.stop?.();
     } catch (_) {
       // The browser will release the camera when this page closes.
     }
+  });
+
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) location.reload();
   });
 
   prepareDishModels();
