@@ -1,0 +1,333 @@
+:root {
+  --ink: #102423;
+  --cream: #fffaf0;
+  --accent: #e46d42;
+  --dish-scale: 1;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #071211;
+}
+
+body {
+  color: var(--ink);
+  font-family: "BIZ UDPGothic", "Yu Gothic UI", "Hiragino Sans", sans-serif;
+  font-weight: 700;
+  overscroll-behavior: none;
+}
+
+button,
+a { font: inherit; }
+
+.camera-app {
+  position: fixed;
+  inset: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: radial-gradient(circle at 50% 42%, #284b47 0, #071211 70%);
+}
+
+.camera-video {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #071211;
+}
+
+.camera-video[hidden],
+.dish-overlay[hidden],
+.camera-error[hidden],
+.size-controls[hidden] { display: none; }
+
+.camera-header,
+.status-pill,
+.start-gate,
+.camera-error,
+.camera-footer,
+.dish-overlay {
+  position: fixed;
+  z-index: 10;
+}
+
+.camera-header {
+  top: 0;
+  right: 0;
+  left: 0;
+  display: grid;
+  grid-template-columns: 4.25rem minmax(0, 1fr) 4.25rem;
+  align-items: center;
+  gap: 0.55rem;
+  padding: calc(env(safe-area-inset-top) + 0.65rem) 0.75rem 0.85rem;
+  color: #fff;
+  background: linear-gradient(180deg, rgba(3, 13, 12, 0.82), rgba(3, 13, 12, 0));
+}
+
+.round-control {
+  display: inline-grid;
+  min-height: 2.75rem;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(11, 36, 34, 0.78);
+  text-decoration: none;
+}
+
+.camera-title {
+  min-width: 0;
+  text-align: center;
+}
+
+.camera-title strong,
+.camera-title span { display: block; }
+
+.camera-title strong { font-size: 1.05rem; }
+
+.camera-title span {
+  margin-top: 0.12rem;
+  font-size: 0.7rem;
+  opacity: 0.88;
+}
+
+.status-pill {
+  top: calc(env(safe-area-inset-top) + 4.7rem);
+  left: 50%;
+  width: min(88vw, 34rem);
+  margin: 0;
+  padding: 0.62rem 0.9rem;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(16, 36, 35, 0.86);
+  text-align: center;
+  font-size: 0.82rem;
+  box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.2);
+}
+
+.status-pill[data-tone="error"] { background: rgba(145, 43, 30, 0.94); }
+.status-pill[data-tone="warning"] { background: rgba(132, 82, 8, 0.94); }
+
+.start-gate,
+.camera-error {
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: calc(env(safe-area-inset-top) + 6.5rem) 1rem calc(env(safe-area-inset-bottom) + 2rem);
+  background: rgba(4, 19, 18, 0.54);
+  overflow: auto;
+}
+
+.start-card,
+.camera-error > div {
+  width: min(100%, 34rem);
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 1.4rem;
+  background: rgba(255, 250, 240, 0.96);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.3);
+}
+
+.start-kicker {
+  margin: 0 0 0.4rem;
+  color: #9b452b;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+}
+
+h1,
+h2 {
+  margin: 0;
+  line-height: 1.35;
+}
+
+h1 { font-size: clamp(1.3rem, 5vw, 1.8rem); }
+h2 { font-size: 1.35rem; }
+
+.start-card ol {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+  line-height: 1.8;
+}
+
+.start-button,
+.error-actions button,
+.error-actions a,
+.size-controls button {
+  min-height: 3rem;
+  border: 0;
+  border-radius: 0.9rem;
+  cursor: pointer;
+}
+
+.start-button {
+  width: 100%;
+  color: #fff;
+  background: var(--accent);
+  font-size: 1.05rem;
+  box-shadow: 0 0.35rem 0.9rem rgba(173, 70, 38, 0.28);
+}
+
+.start-button:disabled { opacity: 0.68; }
+
+.start-note {
+  margin: 0.75rem 0 0;
+  color: #596966;
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+.camera-error p:not(.start-kicker) {
+  line-height: 1.75;
+}
+
+.error-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+
+.error-actions button,
+.error-actions a {
+  display: grid;
+  place-items: center;
+  padding: 0.65rem;
+  text-align: center;
+  text-decoration: none;
+}
+
+.error-actions button {
+  color: #fff;
+  background: var(--accent);
+}
+
+.error-actions a {
+  color: var(--ink);
+  background: #e6ece8;
+}
+
+.dish-overlay {
+  top: 50%;
+  left: 50%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(0.55rem, 3vw, 1.2rem);
+  width: min(88vw, 42rem);
+  transform: translate(-50%, -46%) scale(var(--dish-scale));
+  transform-origin: center;
+  transition: transform 160ms ease;
+}
+
+.dish-card {
+  min-width: 0;
+  margin: 0;
+  padding: 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 1rem;
+  background: rgba(255, 250, 240, 0.87);
+  box-shadow: 0 0.7rem 1.8rem rgba(0, 0, 0, 0.28);
+  text-align: center;
+}
+
+.dish-image-frame {
+  position: relative;
+  display: grid;
+  aspect-ratio: 1;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.dish-image-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.dish-image-frame img[hidden] { display: none; }
+
+.dish-image-frame span {
+  position: absolute;
+  font-size: clamp(2.8rem, 12vw, 5rem);
+}
+
+.dish-card figcaption {
+  overflow: hidden;
+  margin-top: 0.45rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(0.78rem, 3vw, 1rem);
+}
+
+.camera-footer {
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  justify-items: center;
+  gap: 0.55rem;
+  padding: 1rem 0.75rem calc(env(safe-area-inset-bottom) + 0.7rem);
+  color: #fff;
+  background: linear-gradient(0deg, rgba(3, 13, 12, 0.88), rgba(3, 13, 12, 0));
+}
+
+.camera-footer p {
+  margin: 0;
+  text-align: center;
+  font-size: 0.67rem;
+  opacity: 0.9;
+}
+
+.size-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(4.8rem, 1fr));
+  gap: 0.55rem;
+}
+
+.size-controls button {
+  padding: 0.55rem 0.8rem;
+  color: var(--ink);
+  background: rgba(255, 250, 240, 0.94);
+}
+
+.noscript {
+  margin: 0;
+  padding: 2rem;
+  color: #fff;
+}
+
+@media (orientation: landscape) {
+  .dish-overlay {
+    top: 51%;
+    width: min(65vw, 42rem);
+  }
+
+  .start-gate,
+  .camera-error {
+    align-items: start;
+    padding-top: calc(env(safe-area-inset-top) + 5.6rem);
+  }
+
+  .start-card,
+  .camera-error > div { padding: 1rem 1.2rem; }
+
+  .start-card ol {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.4rem;
+    padding-left: 1.2rem;
+    line-height: 1.5;
+  }
+}

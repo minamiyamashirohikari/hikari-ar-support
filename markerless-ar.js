@@ -41,6 +41,14 @@
     || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const isIPhone = /iPhone|iPod/i.test(navigator.userAgent);
   const isAndroid = /Android/i.test(navigator.userAgent);
+  const ipadVersionMatch = isIPad && (
+    navigator.userAgent.match(/(?:CPU (?:iPhone )?OS|CPU OS) (\d+)[._](\d+)/i)
+    || navigator.userAgent.match(/Version\/(\d+)(?:\.(\d+))?/i)
+  );
+  const ipadOsVersion = ipadVersionMatch
+    ? Number(ipadVersionMatch[1]) + Number(ipadVersionMatch[2] || 0) / 10
+    : 0;
+  const needsLegacyIPadCamera = isIPad && ipadOsVersion > 0 && ipadOsVersion < 16.4;
   const supportsPlatformAr = isIPhone || isIPad || isAndroid;
   if (!supportsPlatformAr) viewer.removeAttribute('ar');
 
@@ -365,7 +373,10 @@
     browserArButton.disabled = false;
     simpleCameraArButton.disabled = !pairModelReady;
     nativeArButton.hidden = true;
-    if (isIPad || isAndroid) {
+    if (needsLegacyIPadCamera) {
+      browserArButton.textContent = '軽量カメラARを起動';
+      deviceNote.textContent = 'このiPadでは、空間認識を読み込まない軽量カメラ表示を使用します。';
+    } else if (isIPad || isAndroid) {
       browserArButton.textContent = '空間ARを起動';
       deviceNote.textContent = '2品を別々に読み込む共通ARで、料理をすぐ表示してから机へ固定します。';
     } else if (nativeArSupported) {
@@ -380,9 +391,24 @@
 
   function openSpatialAr() {
     if (!spatialSelectionReady() || spatialArOpening) return;
+    if (needsLegacyIPadCamera) {
+      openLegacyCameraAr();
+      return;
+    }
     spatialArOpening = true;
     const url = new URL('spatial-ar.html', document.baseURI);
-    url.searchParams.set('v', '20260819-ipad42');
+    url.searchParams.set('v', '20260820-minicam43');
+    url.searchParams.set('left', selected[0]);
+    url.searchParams.set('right', selected[1]);
+    releasePairResources();
+    location.href = url.href;
+  }
+
+  function openLegacyCameraAr() {
+    if (!spatialSelectionReady() || spatialArOpening) return;
+    spatialArOpening = true;
+    const url = new URL('camera-ar.html', document.baseURI);
+    url.searchParams.set('v', '20260820-minicam43');
     url.searchParams.set('left', selected[0]);
     url.searchParams.set('right', selected[1]);
     releasePairResources();
@@ -394,6 +420,10 @@
     // camera-relative preview before surface tracking settles. This is more
     // reliable than converting a large merged Blob in iPad Quick Look or
     // waiting indefinitely for Android WebXR floor placement.
+    if (needsLegacyIPadCamera) {
+      openLegacyCameraAr();
+      return;
+    }
     if (isIPad || isAndroid || !nativeArSupported) {
       openSpatialAr();
       return;

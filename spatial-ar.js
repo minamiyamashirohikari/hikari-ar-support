@@ -148,8 +148,10 @@
     stopFallbackCamera();
     fatalTitle.textContent = title;
     fatalDetail.textContent = detail;
-    const fallback = new URL('./', document.baseURI);
-    fallback.searchParams.set('simpleAr', '1');
+    const fallback = new URL('camera-ar.html', document.baseURI);
+    fallback.searchParams.set('v', '20260820-minicam43');
+    fallback.searchParams.set('left', selected[0]);
+    fallback.searchParams.set('right', selected[1]);
     simpleArLink.href = fallback.href;
     fatalPanel.hidden = false;
     startGate.hidden = true;
@@ -300,8 +302,8 @@
   }
 
   function fallbackUrl() {
-    const url = new URL(location.href);
-    url.searchParams.set('camera', '1');
+    const url = new URL('camera-ar.html', document.baseURI);
+    url.searchParams.set('v', '20260820-minicam43');
     url.searchParams.set('left', selected[0]);
     url.searchParams.set('right', selected[1]);
     return url;

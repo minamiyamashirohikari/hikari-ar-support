@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#102423">
+  <meta name="description" content="旧型iPadでも利用できる、料理比較用の軽量カメラARです。">
+  <title>軽量カメラAR | ひかり意思決定支援</title>
+  <link rel="stylesheet" href="camera-ar.css?v=20260820-minicam43">
+  <script defer src="menu_data.js?v=20260817-gyudonfit39"></script>
+  <script defer src="camera-ar.js?v=20260820-minicam43"></script>
+</head>
+<body>
+  <main class="camera-app" id="cameraApp">
+    <video
+      class="camera-video"
+      id="cameraVideo"
+      playsinline
+      webkit-playsinline
+      muted
+      autoplay
+      hidden>
+    </video>
+
+    <section class="dish-overlay" id="dishOverlay" aria-label="選択した料理" hidden>
+      <figure class="dish-card">
+        <div class="dish-image-frame">
+          <img id="leftDishImage" alt="" decoding="async">
+          <span id="leftDishFallback" aria-hidden="true"></span>
+        </div>
+        <figcaption id="leftDishName"></figcaption>
+      </figure>
+      <figure class="dish-card">
+        <div class="dish-image-frame">
+          <img id="rightDishImage" alt="" decoding="async">
+          <span id="rightDishFallback" aria-hidden="true"></span>
+        </div>
+        <figcaption id="rightDishName"></figcaption>
+      </figure>
+    </section>
+
+    <header class="camera-header">
+      <a class="round-control" href="./" aria-label="料理選択に戻る">戻る</a>
+      <div class="camera-title">
+        <strong>軽量カメラAR</strong>
+        <span>iPadOS 15対応・空間固定なし</span>
+      </div>
+      <span class="header-spacer" aria-hidden="true"></span>
+    </header>
+
+    <p class="status-pill" id="statusPill" role="status" aria-live="polite" data-tone="ready">
+      カメラを開始できます
+    </p>
+
+    <section class="start-gate" id="startGate" aria-labelledby="startTitle">
+      <div class="start-card">
+        <p class="start-kicker">旧型iPad向け軽量表示</p>
+        <h1 id="startTitle">料理をカメラ映像に重ねます</h1>
+        <ol>
+          <li>「カメラを開始」を押します</li>
+          <li>カメラの利用を許可します</li>
+          <li>選んだ2品が映像の上に表示されます</li>
+        </ol>
+        <button class="start-button" id="startCameraButton" type="button">カメラを開始</button>
+        <p class="start-note">カメラ映像は端末内だけで処理し、保存・送信しません。</p>
+      </div>
+    </section>
+
+    <section class="camera-error" id="cameraErrorPanel" role="alert" hidden>
+      <div>
+        <p class="start-kicker">カメラ設定の確認</p>
+        <h2 id="cameraErrorTitle">カメラを開始できませんでした</h2>
+        <p id="cameraErrorDetail"></p>
+        <div class="error-actions">
+          <button id="retryCameraButton" type="button">もう一度試す</button>
+          <a href="./">料理選択に戻る</a>
+        </div>
+      </div>
+    </section>
+
+    <footer class="camera-footer">
+      <div class="size-controls" id="sizeControls" hidden>
+        <button id="sizeDownButton" type="button">小さく</button>
+        <button id="sizeResetButton" type="button">標準</button>
+        <button id="sizeUpButton" type="button">大きく</button>
+      </div>
+      <p>この表示は端末の向きに追従しますが、料理は机の位置には固定されません。</p>
+    </footer>
+  </main>
+  <noscript><p class="noscript">カメラ表示にはJavaScriptが必要です。</p></noscript>
+</body>
+</html>
