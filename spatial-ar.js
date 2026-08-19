@@ -148,11 +148,6 @@
     stopFallbackCamera();
     fatalTitle.textContent = title;
     fatalDetail.textContent = detail;
-    const fallback = new URL('camera-ar.html', document.baseURI);
-    fallback.searchParams.set('v', '20260820-minicam43');
-    fallback.searchParams.set('left', selected[0]);
-    fallback.searchParams.set('right', selected[1]);
-    simpleArLink.href = fallback.href;
     fatalPanel.hidden = false;
     startGate.hidden = true;
     setStatus(title, 'error');
@@ -170,7 +165,7 @@
       return '背面カメラを見つけられませんでした。別のブラウザまたは端末でお試しください。';
     }
     if (/Incompatible|Unsupported|WebAssembly|WebGL|SIMD/i.test(details)) {
-      return 'このOSまたはブラウザは空間ARに対応していません。OSとSafari・Chromeを更新するか、簡易カメラ表示をご利用ください。';
+      return 'このOSまたはブラウザは共通空間ARに対応していません。対応するOSとSafari・Chromeで開いてください。';
     }
     return 'AR機能またはカメラを開始できませんでした。通信を確認し、SafariまたはChromeで開き直してください。';
   }
@@ -246,7 +241,7 @@
     try {
       normalizeDishEntity(entity, index === 0 ? -0.145 : 0.145, event.detail?.model);
     } catch (_) {
-      showFatal('料理の立体を配置できませんでした', '画面を再読み込みしてください。改善しない場合は簡易カメラ表示をご利用ください。');
+      showFatal('料理の立体を配置できませんでした', '画面を再読み込みして、もう一度お試しください。');
       return;
     }
     entity.dataset.modelLoaded = 'true';
@@ -268,7 +263,7 @@
     if (modelsPrepared || pageDisposed) return;
     modelsPrepared = true;
     if (!byId.size) {
-      showFatal('料理データを準備できませんでした', '画面を再読み込みしてください。改善しない場合は簡易カメラ表示をご利用ください。');
+      showFatal('料理データを準備できませんでした', '画面を再読み込みして、もう一度お試しください。');
       return;
     }
     const left = byId.get(selected[0]);
@@ -311,18 +306,15 @@
 
   function routeToCameraFallback(message) {
     if (fallbackMode || fallbackRouting || fatalShown || pageDisposed) return;
-    fallbackRouting = true;
     engineAttempt += 1;
     clearEngineLoadTimer();
     clearRealityReadyTimer();
-    persistSelection();
-    setStatus(message || '軽量カメラARへ切り替えています', 'warning');
     try {
       window.XR8?.stop?.();
     } catch (_) {
-      // Reloading the page releases any partially initialized XR resources.
+      // The fatal panel remains available even if the partial engine cannot stop.
     }
-    location.replace(fallbackUrl().href);
+    showFatal('空間ARを開始できませんでした', message || 'この端末では空間ARを開始できませんでした。');
   }
 
   function enableCameraFallback() {
@@ -801,7 +793,9 @@
     if (event.persisted) location.reload();
   });
 
-  if (fallbackRequested) enableCameraFallback();
+  if (fallbackRequested) {
+    showFatal('空間ARを開始できませんでした', '写真を重ねるだけの表示は廃止しました。対応端末で空間ARをご利用ください。');
+  }
   else loadSpatialEngine();
   updateControls();
 })();

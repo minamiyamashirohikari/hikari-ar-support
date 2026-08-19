@@ -6,6 +6,7 @@
     'shoyu_ramen', 'miso_ramen', 'gyudon', 'katsudon', 'beef_curry',
     'hamburg_steak', 'omurice', 'fried_chicken_plate', 'udon', 'spaghetti'
   ];
+  const LEGACY_IPAD_AR_ITEMS = new Set([...FAVORITES, 'chukadon']);
   const items = Array.isArray(window.MENU_ITEMS) ? window.MENU_ITEMS : [];
   const categories = Array.isArray(window.MENU_CATEGORIES) ? window.MENU_CATEGORIES : [];
   const byId = new Map(items.map((item) => [item.id, item]));
@@ -77,7 +78,7 @@
   let cameraViewportTimer = 0;
   let cameraRestartTimer = 0;
   let selected = readSelection();
-  const simpleArRequested = new URLSearchParams(location.search).get('simpleAr') === '1';
+  const simpleArRequested = false;
   let simpleArAutoOpened = false;
 
   function readSelection() {
@@ -240,7 +241,15 @@
     viewer.setAttribute('alt', `${left.name}と${right.name}を並べた立体比較`);
     progressBar.style.width = '0%';
     setMessage(`${left.name}と${right.name}の立体を準備しています`);
-    if (!viewerReady) {
+    if (needsLegacyIPadCamera) {
+      clearViewerLoadTimer();
+      viewer.removeAttribute('src');
+      pairModelReady = false;
+      setMessage(legacyIPadPairSupported()
+        ? `${left.name}と${right.name}はiPad標準ARに対応しています`
+        : 'この組み合わせは旧iPadの空間ARに未対応です。よく使う10品と中華丼から2品を選んでください。',
+      legacyIPadPairSupported() ? 'normal' : 'warning');
+    } else if (!viewerReady) {
       nativeArButton.hidden = true;
       browserArButton.disabled = true;
       simpleCameraArButton.disabled = true;
@@ -361,7 +370,30 @@
       && selected.every((id) => Boolean(byId.get(id)?.modelUrl));
   }
 
+  function legacyIPadPairSupported() {
+    return selected.length === 2
+      && selected[0] !== selected[1]
+      && selected.every((id) => LEGACY_IPAD_AR_ITEMS.has(id));
+  }
+
+  function legacyIPadUsdzUrl() {
+    if (!legacyIPadPairSupported()) return '';
+    const [first, second] = [...selected].sort();
+    return new URL(`assets/legacy-ipad-usdz/${first}--${second}.usdz`, document.baseURI).href;
+  }
+
   function updateArAvailability() {
+    if (needsLegacyIPadCamera) {
+      const supported = legacyIPadPairSupported();
+      nativeArButton.hidden = true;
+      simpleCameraArButton.hidden = true;
+      browserArButton.disabled = !supported;
+      browserArButton.textContent = 'iPad標準の空間ARを起動';
+      deviceNote.textContent = supported
+        ? '事前生成した高品質な2品をiPad標準ARで机に配置します。'
+        : '旧iPadの空間ARは、よく使う10品と中華丼の組み合わせに対応しています。';
+      return;
+    }
     const sharedRouteReady = (isIPad || isAndroid) && spatialSelectionReady();
     if (!sharedRouteReady && (!viewerReady || !pairModelReady)) {
       nativeArButton.hidden = true;
@@ -373,10 +405,7 @@
     browserArButton.disabled = false;
     simpleCameraArButton.disabled = !pairModelReady;
     nativeArButton.hidden = true;
-    if (needsLegacyIPadCamera) {
-      browserArButton.textContent = '軽量カメラARを起動';
-      deviceNote.textContent = 'このiPadでは、空間認識を読み込まない軽量カメラ表示を使用します。';
-    } else if (isIPad || isAndroid) {
+    if (isIPad || isAndroid) {
       browserArButton.textContent = '空間ARを起動';
       deviceNote.textContent = '2品を別々に読み込む共通ARで、料理をすぐ表示してから机へ固定します。';
     } else if (nativeArSupported) {
@@ -397,7 +426,7 @@
     }
     spatialArOpening = true;
     const url = new URL('spatial-ar.html', document.baseURI);
-    url.searchParams.set('v', '20260820-minicam43');
+    url.searchParams.set('v', '20260820-prebuilt46');
     url.searchParams.set('left', selected[0]);
     url.searchParams.set('right', selected[1]);
     releasePairResources();
@@ -408,11 +437,28 @@
     if (!spatialSelectionReady() || spatialArOpening) return;
     spatialArOpening = true;
     const url = new URL('camera-ar.html', document.baseURI);
-    url.searchParams.set('v', '20260820-minicam43');
+    url.searchParams.set('v', '20260820-prebuilt46');
     url.searchParams.set('left', selected[0]);
     url.searchParams.set('right', selected[1]);
     releasePairResources();
     location.href = url.href;
+  }
+
+  function openLegacyIPadAr() {
+    const usdzUrl = legacyIPadUsdzUrl();
+    if (!usdzUrl) {
+      setMessage('この組み合わせは旧iPadの空間ARに未対応です。', 'warning');
+      return;
+    }
+    const anchor = document.createElement('a');
+    anchor.rel = 'ar';
+    anchor.href = usdzUrl;
+    const preview = document.createElement('img');
+    preview.alt = '';
+    anchor.appendChild(preview);
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
   }
 
   async function openPreferredAr() {
@@ -421,7 +467,7 @@
     // reliable than converting a large merged Blob in iPad Quick Look or
     // waiting indefinitely for Android WebXR floor placement.
     if (needsLegacyIPadCamera) {
-      openLegacyCameraAr();
+      openLegacyIPadAr();
       return;
     }
     if (isIPad || isAndroid || !nativeArSupported) {

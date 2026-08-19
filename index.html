@@ -13,7 +13,7 @@
   <script defer src="markerless-models.js?v=20260817-gyudonfit39"></script>
   <script defer src="menu_data.js?v=20260817-gyudonfit39"></script>
   <script defer src="glb-pair-composer.js?v=20260716-ipad2"></script>
-  <script defer src="markerless-ar.js?v=20260820-minicam43"></script>
+  <script defer src="markerless-ar.js?v=20260820-prebuilt46"></script>
 </head>
 <body>
   <a class="skip-link" href="#menuGrid">料理一覧へ移動</a>
@@ -83,7 +83,7 @@
         <button class="browser-ar-button" id="browserArButton" type="button" disabled>
           空間ARを起動
         </button>
-        <button class="simple-camera-button" id="simpleCameraArButton" type="button" disabled>
+        <button class="simple-camera-button" id="simpleCameraArButton" type="button" disabled hidden>
           簡易カメラ表示
         </button>
         <span>iPad・Androidは共通空間AR、iPhoneは標準ARを優先します</span>
@@ -138,10 +138,10 @@
       <li>料理はまず見える位置に表示されます。明るい机をゆっくり映してください。</li>
       <li>机を検出すると2品が自動で固定されます。「机に固定する」でも置き直せます。</li>
       <li>端末を動かすと、料理を横や斜めから確認できます。</li>
-      <li>開始できない端末だけ「簡易カメラ表示」を使用します。</li>
+      <li>iPadOS 15では、よく使う10品と中華丼の組み合わせをiPad標準ARで表示します。</li>
     </ol>
     <p>iPad・Androidは2品を別々に読み込む共通空間ARを使い、面検出前も料理を仮表示します。iPhoneは端末標準ARを優先します。追加アプリや印刷マーカーは必要ありません。</p>
-    <p>推奨環境はiOS・iPadOS 16.4以降のSafari、Androidの最新版Chromeです。対応外の場合は「簡易カメラ表示」を利用できます。</p>
+    <p>推奨環境はiOS・iPadOS 16.4以降のSafari、Androidの最新版Chromeです。iPadOS 15は事前生成済みの55組に対応します。</p>
     <p><a href="model-credits.html">3Dモデルの権利表記</a></p>
   </dialog>
 
