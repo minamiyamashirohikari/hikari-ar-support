@@ -51,6 +51,13 @@
   const needsLegacyIPadCamera = isIPad && ipadOsVersion > 0 && ipadOsVersion < 16.4;
   const supportsPlatformAr = isIPhone || isIPad || isAndroid;
   if (!supportsPlatformAr) viewer.removeAttribute('ar');
+  if (needsLegacyIPadCamera) viewer.setAttribute('ar-modes', 'quick-look');
+
+  const legacyModelAliases = {
+    ebi_fry: 'tempura',
+    sandwich2: 'sandwich',
+    chukadon: 'fried_rice'
+  };
 
   let activeChoice = 0;
   let activeCategory = 'favorites';
@@ -152,7 +159,10 @@
       const controller = new AbortController();
       modelFetchControllers.set(id, controller);
       const timeout = window.setTimeout(() => controller.abort(), 15000);
-      const request = fetch(new URL(item.modelUrl, document.baseURI), {
+      const modelUrl = needsLegacyIPadCamera
+        ? `assets/models/${legacyModelAliases[id] || id}.glb`
+        : item.modelUrl;
+      const request = fetch(new URL(modelUrl, document.baseURI), {
         cache: 'force-cache',
         signal: controller.signal
       })
@@ -210,7 +220,11 @@
     } catch (_) {
       if (revision !== pairLoadRevision) return;
       pairFallbackActive = true;
-      replaceViewerSource(byId.get(selected[0]).modelUrl, false, revision);
+      const fallbackId = legacyModelAliases[selected[0]] || selected[0];
+      const fallbackUrl = needsLegacyIPadCamera
+        ? `assets/models/${fallbackId}.glb`
+        : byId.get(selected[0]).modelUrl;
+      replaceViewerSource(fallbackUrl, false, revision);
       setMessage('2品の準備に失敗したため、候補1を安全表示しています。', 'warning');
     }
   }
@@ -362,7 +376,7 @@
   }
 
   function updateArAvailability() {
-    const sharedRouteReady = (isIPad || isAndroid) && spatialSelectionReady();
+    const sharedRouteReady = ((isIPad && !needsLegacyIPadCamera) || isAndroid) && spatialSelectionReady();
     if (!sharedRouteReady && (!viewerReady || !pairModelReady)) {
       nativeArButton.hidden = true;
       browserArButton.disabled = true;
@@ -374,8 +388,8 @@
     simpleCameraArButton.disabled = !pairModelReady;
     nativeArButton.hidden = true;
     if (needsLegacyIPadCamera) {
-      browserArButton.textContent = '軽量カメラARを起動';
-      deviceNote.textContent = 'このiPadでは、空間認識を読み込まない軽量カメラ表示を使用します。';
+      browserArButton.textContent = 'iPad標準の空間ARを起動';
+      deviceNote.textContent = '軽量な2品をiPad標準ARで机に置きます。起動できない場合は軽量カメラ表示へ切り替えます。';
     } else if (isIPad || isAndroid) {
       browserArButton.textContent = '空間ARを起動';
       deviceNote.textContent = '2品を別々に読み込む共通ARで、料理をすぐ表示してから机へ固定します。';
@@ -397,7 +411,7 @@
     }
     spatialArOpening = true;
     const url = new URL('spatial-ar.html', document.baseURI);
-    url.searchParams.set('v', '20260820-minicam43');
+    url.searchParams.set('v', '20260820-quicklook44');
     url.searchParams.set('left', selected[0]);
     url.searchParams.set('right', selected[1]);
     releasePairResources();
@@ -408,7 +422,7 @@
     if (!spatialSelectionReady() || spatialArOpening) return;
     spatialArOpening = true;
     const url = new URL('camera-ar.html', document.baseURI);
-    url.searchParams.set('v', '20260820-minicam43');
+    url.searchParams.set('v', '20260820-quicklook44');
     url.searchParams.set('left', selected[0]);
     url.searchParams.set('right', selected[1]);
     releasePairResources();
@@ -421,7 +435,19 @@
     // reliable than converting a large merged Blob in iPad Quick Look or
     // waiting indefinitely for Android WebXR floor placement.
     if (needsLegacyIPadCamera) {
-      openLegacyCameraAr();
+      if (!pairModelReady) return;
+      browserArButton.disabled = true;
+      setMessage('iPad標準ARを起動しています');
+      beginNativeArAttempt();
+      try {
+        await viewer.activateAR();
+      } catch (_) {
+        clearNativeArAttempt();
+        setMessage('iPad標準ARを開始できなかったため、軽量カメラ表示へ切り替えます。', 'warning');
+        openLegacyCameraAr();
+      } finally {
+        browserArButton.disabled = false;
+      }
       return;
     }
     if (isIPad || isAndroid || !nativeArSupported) {
@@ -779,7 +805,11 @@
     }
     if (!pairFallbackActive) {
       pairFallbackActive = true;
-      replaceViewerSource(byId.get(selected[0]).modelUrl, false, pairLoadRevision);
+      const fallbackId = legacyModelAliases[selected[0]] || selected[0];
+      const fallbackUrl = needsLegacyIPadCamera
+        ? `assets/models/${fallbackId}.glb`
+        : byId.get(selected[0]).modelUrl;
+      replaceViewerSource(fallbackUrl, false, pairLoadRevision);
       setMessage('2品の読み込みに失敗したため、候補1を安全表示しています。', 'warning');
       return;
     }

@@ -149,7 +149,7 @@
     fatalTitle.textContent = title;
     fatalDetail.textContent = detail;
     const fallback = new URL('camera-ar.html', document.baseURI);
-    fallback.searchParams.set('v', '20260820-minicam43');
+    fallback.searchParams.set('v', '20260820-quicklook44');
     fallback.searchParams.set('left', selected[0]);
     fallback.searchParams.set('right', selected[1]);
     simpleArLink.href = fallback.href;
@@ -303,7 +303,7 @@
 
   function fallbackUrl() {
     const url = new URL('camera-ar.html', document.baseURI);
-    url.searchParams.set('v', '20260820-minicam43');
+    url.searchParams.set('v', '20260820-quicklook44');
     url.searchParams.set('left', selected[0]);
     url.searchParams.set('right', selected[1]);
     return url;
