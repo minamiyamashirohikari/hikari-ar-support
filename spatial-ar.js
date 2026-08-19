@@ -4,7 +4,8 @@
   const STORAGE_KEY = 'senshakuSelectedIds';
   const DEFAULT_IDS = ['miso_ramen', 'gyudon'];
   const MODEL_TIMEOUT_MS = 60000;
-  const ENGINE_TIMEOUT_MS = 60000;
+  const ENGINE_CORE_TIMEOUT_MS = 15000;
+  const SLAM_CHUNK_TIMEOUT_MS = 30000;
   const REALITY_TIMEOUT_MS = 30000;
   const HIT_TEST_TYPES = ['DETECTED_SURFACE', 'ESTIMATED_SURFACE', 'FEATURE_POINT'];
   const HIT_PRIORITY = [...HIT_TEST_TYPES, 'UNSPECIFIED'];
@@ -14,8 +15,10 @@
   const items = Array.isArray(window.MENU_ITEMS) ? window.MENU_ITEMS : [];
   const byId = new Map(items.map((item) => [item.id, item]));
 
+  const arApp = document.getElementById('arApp');
   const scene = document.getElementById('xrScene');
   const camera = document.getElementById('arCamera');
+  const fallbackCameraVideo = document.getElementById('fallbackCameraVideo');
   const pairEntity = document.getElementById('pairEntity');
   const dishEntities = [
     document.getElementById('leftDishEntity'),
@@ -25,6 +28,9 @@
   const statusPill = document.getElementById('statusPill');
   const aimGuide = document.getElementById('aimGuide');
   const startGate = document.getElementById('startGate');
+  const startTitle = document.getElementById('startTitle');
+  const spatialStartSteps = document.getElementById('spatialStartSteps');
+  const fallbackStartSteps = document.getElementById('fallbackStartSteps');
   const startCameraButton = document.getElementById('startCameraButton');
   const placeButton = document.getElementById('placeButton');
   const recenterButton = document.getElementById('recenterButton');
@@ -35,9 +41,18 @@
   const simpleArLink = document.getElementById('simpleArLink');
 
   let modelLoadTimer = 0;
+  let engineLoadTimer = 0;
   let realityReadyTimer = 0;
   let loadedDishCount = 0;
+  let engineAttempt = 0;
+  let enginePreparing = false;
   let engineReady = false;
+  let modelsPrepared = false;
+  let fallbackMode = false;
+  let fallbackRouting = false;
+  let fallbackStream = null;
+  let fallbackCameraAttempt = 0;
+  let pageDisposed = false;
   let cameraStarted = false;
   let realityReady = false;
   let trackingNormal = false;
@@ -70,6 +85,7 @@
   }
 
   const selected = selectedIds();
+  const fallbackRequested = new URLSearchParams(location.search).get('camera') === '1';
 
   function setStatus(text, tone = 'loading') {
     statusPill.textContent = text;
@@ -82,6 +98,12 @@
     realityReadyTimer = 0;
   }
 
+  function clearEngineLoadTimer() {
+    if (!engineLoadTimer) return;
+    window.clearTimeout(engineLoadTimer);
+    engineLoadTimer = 0;
+  }
+
   function setEntityVisible(entity, visible) {
     if (!entity) return;
     if (entity.getAttribute('visible') !== visible) entity.setAttribute('visible', visible);
@@ -89,23 +111,41 @@
   }
 
   function canShowPair() {
-    return cameraStarted && realityReady && modelReady && !fatalShown;
+    return cameraStarted && realityReady && modelReady && !fatalShown && !pageDisposed;
   }
 
   function updateControls() {
-    const canPlace = canShowPair() && trackingNormal;
+    const fallbackPairVisible = fallbackMode && canShowPair();
+    const canPlace = !fallbackMode && canShowPair() && trackingNormal;
+    placeButton.hidden = fallbackMode;
     placeButton.disabled = !canPlace;
-    recenterButton.disabled = !cameraStarted || fatalShown;
+    recenterButton.hidden = fallbackMode;
+    recenterButton.disabled = fallbackMode || !cameraStarted || fatalShown;
     aimGuide.dataset.visible = String(canPlace);
     aimGuide.dataset.placed = String(placed);
-    sizeControls.hidden = !placed;
+    sizeControls.hidden = !(placed || fallbackPairVisible);
+  }
+
+  function stopFallbackCamera() {
+    fallbackCameraAttempt += 1;
+    if (fallbackStream) {
+      for (const track of fallbackStream.getTracks()) track.stop();
+    }
+    fallbackStream = null;
+    if (fallbackCameraVideo) {
+      fallbackCameraVideo.pause?.();
+      fallbackCameraVideo.srcObject = null;
+      fallbackCameraVideo.hidden = true;
+    }
   }
 
   function showFatal(title, detail) {
-    if (fatalShown) return;
+    if (fatalShown || pageDisposed) return;
     fatalShown = true;
+    clearEngineLoadTimer();
     clearRealityReadyTimer();
     stopPreviewLoop();
+    stopFallbackCamera();
     fatalTitle.textContent = title;
     fatalDetail.textContent = detail;
     const fallback = new URL('./', document.baseURI);
@@ -184,6 +224,7 @@
   }
 
   function beginDishLoad(index) {
+    if (pageDisposed) return;
     const item = byId.get(selected[index]);
     const entity = dishEntities[index];
     if (!item?.modelUrl || !entity) {
@@ -198,7 +239,7 @@
 
   function handleDishLoaded(index, event) {
     const entity = dishEntities[index];
-    if (entity.dataset.modelLoaded === 'true' || fatalShown) return;
+    if (entity.dataset.modelLoaded === 'true' || fatalShown || pageDisposed) return;
     clearModelLoadTimer();
     try {
       normalizeDishEntity(entity, index === 0 ? -0.145 : 0.145, event.detail?.model);
@@ -222,6 +263,8 @@
   }
 
   function prepareDishModels() {
+    if (modelsPrepared || pageDisposed) return;
+    modelsPrepared = true;
     if (!byId.size) {
       showFatal('料理データを準備できませんでした', '画面を再読み込みしてください。改善しない場合は簡易カメラ表示をご利用ください。');
       return;
@@ -237,15 +280,188 @@
     beginDishLoad(0);
   }
 
+  function persistSelection() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(selected));
+    } catch (_) {
+      // The URL still carries the selection when storage is unavailable.
+    }
+  }
+
   function markEngineReady() {
-    if (engineReady) return;
+    if (engineReady || fallbackMode || fallbackRouting || fatalShown || pageDisposed) return;
+    clearEngineLoadTimer();
+    enginePreparing = false;
     engineReady = true;
+    prepareDishModels();
     startCameraButton.disabled = false;
     startCameraButton.textContent = 'カメラを開始';
     if (modelReady) setStatus('「カメラを開始」を押してください', 'ready');
   }
 
+  function fallbackUrl() {
+    const url = new URL(location.href);
+    url.searchParams.set('camera', '1');
+    url.searchParams.set('left', selected[0]);
+    url.searchParams.set('right', selected[1]);
+    return url;
+  }
+
+  function routeToCameraFallback(message) {
+    if (fallbackMode || fallbackRouting || fatalShown || pageDisposed) return;
+    fallbackRouting = true;
+    engineAttempt += 1;
+    clearEngineLoadTimer();
+    clearRealityReadyTimer();
+    persistSelection();
+    setStatus(message || '軽量カメラARへ切り替えています', 'warning');
+    try {
+      window.XR8?.stop?.();
+    } catch (_) {
+      // Reloading the page releases any partially initialized XR resources.
+    }
+    location.replace(fallbackUrl().href);
+  }
+
+  function enableCameraFallback() {
+    if (fatalShown || pageDisposed) return;
+    fallbackMode = true;
+    fallbackRouting = false;
+    engineAttempt += 1;
+    clearEngineLoadTimer();
+    clearRealityReadyTimer();
+    enginePreparing = false;
+    engineReady = false;
+    arApp.dataset.arMode = 'camera-fallback';
+    startTitle.textContent = '料理をカメラ映像に重ねて表示します';
+    spatialStartSteps.hidden = true;
+    fallbackStartSteps.hidden = false;
+    startCameraButton.disabled = false;
+    startCameraButton.textContent = 'カメラARを開始';
+    startGate.hidden = false;
+    setStatus('軽量カメラARを利用できます', 'ready');
+    prepareDishModels();
+    updateControls();
+  }
+
+  function prepareSpatialEngine() {
+    if (engineReady || enginePreparing || fallbackMode || fallbackRouting || fatalShown || pageDisposed) return;
+    if (!window.XR8) {
+      routeToCameraFallback('空間認識を読み込めないため、軽量表示へ切り替えています');
+      return;
+    }
+    if (window.XR8.XrController) {
+      markEngineReady();
+      return;
+    }
+    if (typeof window.XR8.loadChunk !== 'function') {
+      routeToCameraFallback('空間認識に対応していないため、軽量表示へ切り替えています');
+      return;
+    }
+
+    enginePreparing = true;
+    const attempt = ++engineAttempt;
+    setStatus('空間認識を準備しています');
+    clearEngineLoadTimer();
+    engineLoadTimer = window.setTimeout(() => {
+      if (attempt === engineAttempt && !engineReady && !fallbackMode && !fatalShown && !pageDisposed) {
+        routeToCameraFallback('空間認識の準備に時間がかかるため、軽量表示へ切り替えています');
+      }
+    }, SLAM_CHUNK_TIMEOUT_MS);
+
+    Promise.resolve()
+      .then(() => window.XR8.loadChunk('slam'))
+      .then(() => {
+        if (attempt !== engineAttempt || fallbackMode || fallbackRouting || fatalShown || pageDisposed) return;
+        if (!window.XR8?.XrController) throw new Error('SLAM controller is unavailable');
+        markEngineReady();
+      })
+      .catch(() => {
+        if (attempt === engineAttempt && !fallbackMode && !fallbackRouting && !fatalShown && !pageDisposed) {
+          routeToCameraFallback('空間認識を開始できないため、軽量表示へ切り替えています');
+        }
+      });
+  }
+
+  function loadSpatialEngine() {
+    if (pageDisposed) return;
+    if (window.XR8) {
+      prepareSpatialEngine();
+      return;
+    }
+    window.addEventListener('xrloaded', prepareSpatialEngine, { once: true });
+    const script = document.createElement('script');
+    script.src = new URL('vendor/8thwall/xr.js?v=20260819-ipad42', document.baseURI).href;
+    script.async = true;
+    script.addEventListener('load', () => {
+      if (window.XR8) prepareSpatialEngine();
+    });
+    script.addEventListener('error', () => {
+      routeToCameraFallback('AR機能を読み込めないため、軽量表示へ切り替えています');
+    });
+    document.head.appendChild(script);
+    engineLoadTimer = window.setTimeout(() => {
+      if (!window.XR8 && !fallbackMode && !fallbackRouting && !fatalShown && !pageDisposed) {
+        routeToCameraFallback('AR機能の準備に時間がかかるため、軽量表示へ切り替えています');
+      }
+    }, ENGINE_CORE_TIMEOUT_MS);
+  }
+
+  async function startFallbackCamera() {
+    if (!fallbackMode || cameraStarted || fatalShown || pageDisposed) return;
+    const attempt = ++fallbackCameraAttempt;
+    const mediaDevices = navigator.mediaDevices;
+    if (!mediaDevices?.getUserMedia) {
+      showFatal('カメラを開始できませんでした', 'このブラウザではカメラを利用できません。SafariまたはChromeで開いてください。');
+      return;
+    }
+    cameraStarted = true;
+    startCameraButton.disabled = true;
+    startCameraButton.textContent = 'カメラを起動しています';
+    setStatus('カメラの使用を許可してください');
+    try {
+      const stream = await mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      });
+      if (attempt !== fallbackCameraAttempt || pageDisposed) {
+        for (const track of stream.getTracks()) track.stop();
+        return;
+      }
+      fallbackStream = stream;
+      fallbackCameraVideo.srcObject = fallbackStream;
+      fallbackCameraVideo.hidden = false;
+      await fallbackCameraVideo.play();
+      if (attempt !== fallbackCameraAttempt || pageDisposed) {
+        for (const track of stream.getTracks()) track.stop();
+        return;
+      }
+      realityReady = true;
+      trackingNormal = false;
+      placed = false;
+      placementMode = 'preview';
+      startGate.hidden = true;
+      updateControls();
+      ensurePreviewVisible();
+      if (!modelReady) setStatus('カメラを開始しました。料理の立体を準備しています');
+    } catch (error) {
+      if (attempt !== fallbackCameraAttempt) return;
+      cameraStarted = false;
+      stopFallbackCamera();
+      showFatal('カメラを開始できませんでした', cameraErrorMessage(error));
+    }
+  }
+
   function startCamera() {
+    if (pageDisposed) return;
+    if (fallbackMode) {
+      startFallbackCamera();
+      return;
+    }
     if (!engineReady || cameraStarted || fatalShown) return;
     cameraStarted = true;
     startCameraButton.disabled = true;
@@ -253,9 +469,10 @@
     setStatus('カメラの許可を確認しています');
     clearRealityReadyTimer();
     try {
-      scene.setAttribute('xrweb', 'allowedDevices: any; scale: absolute');
+      scene.setAttribute('xrweb', 'allowedDevices: mobile; scale: absolute');
     } catch (error) {
-      showFatal('空間ARを開始できませんでした', cameraErrorMessage(error));
+      cameraStarted = false;
+      routeToCameraFallback('空間ARを開始できないため、軽量表示へ切り替えています');
     }
   }
 
@@ -263,10 +480,7 @@
     if (realityReady || fatalShown || realityReadyTimer) return;
     realityReadyTimer = window.setTimeout(() => {
       if (!realityReady && !fatalShown) {
-        showFatal(
-          'カメラは起動しましたが、空間認識を開始できませんでした',
-          'SafariまたはChromeを開き直すか、簡易カメラ表示をご利用ください。'
-        );
+        routeToCameraFallback('空間認識を開始できないため、軽量表示へ切り替えています');
       }
     }, REALITY_TIMEOUT_MS);
   }
@@ -346,7 +560,10 @@
     placeButton.textContent = '机に固定する';
     const shown = updatePreviewPose();
     if (shown) {
-      setStatus('料理を仮表示しました。机をゆっくり映すと自動で固定します', 'warning');
+      setStatus(fallbackMode
+        ? '料理をカメラ映像に重ねて表示しています（空間固定なし）'
+        : '料理を仮表示しました。机をゆっくり映すと自動で固定します',
+      fallbackMode ? 'ready' : 'warning');
       startPreviewLoop();
     }
     updateControls();
@@ -438,7 +655,7 @@
     previewAnimationFrame = 0;
     if (placementMode === 'preview' && canShowPair()) {
       updatePreviewPose();
-      if (trackingNormal && timestamp - lastSurfaceProbeAt >= PREVIEW_SURFACE_PROBE_MS) {
+      if (!fallbackMode && trackingNormal && timestamp - lastSurfaceProbeAt >= PREVIEW_SURFACE_PROBE_MS) {
         lastSurfaceProbeAt = timestamp;
         const hit = hitAtCenter({ surfaceOnly: true, maxDistance: 3 });
         const stableHit = stableSurfaceAnchor(hit);
@@ -449,7 +666,7 @@
   }
 
   function recenter() {
-    if (!cameraStarted || fatalShown) return;
+    if (fallbackMode || !cameraStarted || fatalShown) return;
     placed = false;
     placementMode = 'preview';
     resetSurfaceStability();
@@ -488,6 +705,7 @@
   });
 
   scene.addEventListener('camerastatuschange', (event) => {
+    if (fallbackMode || pageDisposed) return;
     const status = event.detail?.status;
     if (status === 'requesting') setStatus('カメラの使用を許可してください');
     if (status === 'hasStream') {
@@ -498,10 +716,19 @@
       setStatus('机をゆっくり映してください');
       armRealityReadyTimer();
     }
-    if (status === 'failed') showFatal('カメラを開始できませんでした', cameraErrorMessage(event.detail));
+    if (status === 'failed') {
+      const detail = cameraErrorMessage(event.detail);
+      if (detail.startsWith('カメラが許可されていません')) {
+        showFatal('カメラを開始できませんでした', detail);
+      } else {
+        cameraStarted = false;
+        routeToCameraFallback('空間ARカメラを開始できないため、軽量表示へ切り替えています');
+      }
+    }
   });
 
   scene.addEventListener('realityready', () => {
+    if (fallbackMode || fallbackRouting || pageDisposed) return;
     clearRealityReadyTimer();
     realityReady = true;
     startGate.hidden = true;
@@ -511,6 +738,7 @@
   });
 
   scene.addEventListener('xrtrackingstatus', (event) => {
+    if (fallbackMode || fallbackRouting || pageDisposed) return;
     trackingNormal = event.detail?.status === 'NORMAL';
     ensurePreviewVisible();
     if (trackingNormal) {
@@ -529,8 +757,15 @@
   });
 
   scene.addEventListener('realityerror', (event) => {
+    if (pageDisposed) return;
     clearRealityReadyTimer();
-    showFatal('空間ARを開始できませんでした', cameraErrorMessage(event.detail?.error || event.detail));
+    const detail = cameraErrorMessage(event.detail?.error || event.detail);
+    if (detail.startsWith('カメラが許可されていません')) {
+      showFatal('空間ARを開始できませんでした', detail);
+    } else {
+      cameraStarted = false;
+      routeToCameraFallback('空間認識を開始できないため、軽量表示へ切り替えています');
+    }
   });
 
   startCameraButton.addEventListener('click', startCamera);
@@ -545,19 +780,14 @@
   document.getElementById('sizeUpButton').addEventListener('click', () => changeScale(0.1));
   document.getElementById('retryButton').addEventListener('click', () => location.reload());
 
-  if (window.XR8) markEngineReady();
-  else window.addEventListener('xrloaded', markEngineReady, { once: true });
-
-  window.setTimeout(() => {
-    if (!engineReady && !fatalShown) {
-      showFatal('AR機能の読み込みが完了しませんでした', '通信を確認して「もう一度試す」を押してください。');
-    }
-  }, ENGINE_TIMEOUT_MS);
-
   window.addEventListener('pagehide', () => {
+    pageDisposed = true;
+    engineAttempt += 1;
+    clearEngineLoadTimer();
     clearModelLoadTimer();
     clearRealityReadyTimer();
     stopPreviewLoop();
+    stopFallbackCamera();
     try {
       window.XR8?.stop?.();
     } catch (_) {
@@ -569,6 +799,7 @@
     if (event.persisted) location.reload();
   });
 
-  prepareDishModels();
+  if (fallbackRequested) enableCameraFallback();
+  else loadSpatialEngine();
   updateControls();
 })();

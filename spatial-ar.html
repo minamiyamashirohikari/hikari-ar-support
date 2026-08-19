@@ -6,17 +6,26 @@
   <meta name="theme-color" content="#102423">
   <meta name="description" content="iPhone、iPad、Androidで同じ操作ができる、料理比較用のマーカー不要空間ARです。">
   <title>料理を空間に置く | ひかり意思決定支援</title>
-  <link rel="stylesheet" href="spatial-ar.css?v=20260819-spatial41">
+  <link rel="stylesheet" href="spatial-ar.css?v=20260819-ipad42">
   <script src="vendor/8thwall/8frame-1.5.0.min.js"></script>
   <script src="vendor/8thwall/xrextras.js"></script>
-  <script async src="vendor/8thwall/xr.js" data-preload-chunks="slam"></script>
   <script defer src="real_models.js?v=20260817-gyudonfit39"></script>
   <script defer src="markerless-models.js?v=20260817-gyudonfit39"></script>
   <script defer src="menu_data.js?v=20260817-gyudonfit39"></script>
-  <script defer src="spatial-ar.js?v=20260819-spatial41"></script>
+  <script defer src="spatial-ar.js?v=20260819-ipad42"></script>
 </head>
 <body>
   <main class="ar-app" id="arApp">
+    <video
+      class="fallback-camera-video"
+      id="fallbackCameraVideo"
+      playsinline
+      webkit-playsinline
+      muted
+      autoplay
+      hidden>
+    </video>
+
     <a-scene
       id="xrScene"
       embedded
@@ -74,10 +83,15 @@
       <div class="start-card">
         <p class="start-kicker">マーカー・追加アプリ不要</p>
         <h1 id="startTitle">料理を表示して机に置きます</h1>
-        <ol>
+        <ol id="spatialStartSteps">
           <li>カメラを開始します</li>
           <li>料理が見える位置に仮表示されます</li>
           <li>明るい机を映すと自動で固定されます</li>
+        </ol>
+        <ol id="fallbackStartSteps" hidden>
+          <li>カメラを開始します</li>
+          <li>料理をカメラ映像に重ねて表示します</li>
+          <li>大きさは画面下のボタンで調整できます</li>
         </ol>
         <button class="start-button" id="startCameraButton" type="button" disabled>ARを準備しています</button>
         <p class="start-note">カメラ映像は端末内で処理され、保存・送信しません。</p>

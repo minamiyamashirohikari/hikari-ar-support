@@ -382,7 +382,7 @@
     if (!spatialSelectionReady() || spatialArOpening) return;
     spatialArOpening = true;
     const url = new URL('spatial-ar.html', document.baseURI);
-    url.searchParams.set('v', '20260819-spatial41');
+    url.searchParams.set('v', '20260819-ipad42');
     url.searchParams.set('left', selected[0]);
     url.searchParams.set('right', selected[1]);
     releasePairResources();

@@ -41,9 +41,24 @@ a-scene,
 .a-canvas {
   position: fixed !important;
   inset: 0 !important;
+  z-index: 1 !important;
   width: 100% !important;
   height: 100% !important;
 }
+
+.fallback-camera-video {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #071211;
+}
+
+.fallback-camera-video[hidden],
+.start-card ol[hidden],
+.place-button[hidden] { display: none; }
 
 .ar-header,
 .ar-footer,
