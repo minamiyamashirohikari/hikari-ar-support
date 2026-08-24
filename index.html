@@ -13,7 +13,7 @@
   <script defer src="markerless-models.js?v=20260817-gyudonfit39"></script>
   <script defer src="menu_data.js?v=20260817-gyudonfit39"></script>
   <script defer src="glb-pair-composer.js?v=20260716-ipad2"></script>
-  <script defer src="markerless-ar-v211.js"></script>
+  <script defer src="markerless-ar-v212.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#menuGrid">料理一覧へ移動</a>
@@ -81,12 +81,12 @@
 
       <div class="ar-actions">
         <button class="browser-ar-button" id="browserArButton" type="button" disabled>
-          空間ARを起動
+          標準ARを起動
         </button>
         <button class="simple-camera-button" id="simpleCameraArButton" type="button" disabled hidden>
           3Dカメラ比較
         </button>
-        <span>対応端末は空間AR、旧型iPadは高品質3Dカメラ比較を使用します</span>
+        <span>iPhone・iPadはApple標準AR、Androidは共通空間ARを使用します</span>
       </div>
 
       <div class="choice-pair" aria-label="比較する料理">
@@ -105,7 +105,7 @@
 
       <p class="device-note" id="deviceNote">選んだ2品の立体を準備しています。</p>
       <p class="ios-orientation-note" id="iosOrientationNote" hidden>
-        iPhone標準ARを横向きで使うときは、先に画面の向きロックを解除してください。
+        iPhone・iPad標準ARを横向きで使うときは、先に画面の向きロックを解除してください。
       </p>
     </section>
 
@@ -134,13 +134,13 @@
     </div>
     <ol>
       <li>候補1と候補2の料理を選びます。</li>
-      <li>「空間ARを起動」を押し、続けてカメラを開始します。</li>
-      <li>料理はまず見える位置に表示されます。明るい机をゆっくり映してください。</li>
-      <li>机を検出すると2品が自動で固定されます。「机に固定する」でも置き直せます。</li>
+      <li>iPhone・iPadでは「標準ARを起動」、Androidでは「空間ARを起動」を押します。</li>
+      <li>iPhone・iPadではApple標準画面の案内に従って料理を表示します。</li>
+      <li>Androidでは料理が見える位置に表示され、検出した面へ固定できます。</li>
       <li>端末を動かすと、料理を横や斜めから確認できます。</li>
       <li>iPadOS 16.4未満では「3Dカメラ比較」で、高品質な2品をカメラ映像の上に表示します。</li>
     </ol>
-    <p>iPad・Androidは2品を別々に読み込む共通空間ARを使い、面検出前も料理を仮表示します。iPhoneは端末標準ARを優先します。追加アプリや印刷マーカーは必要ありません。</p>
+    <p>iPhone・対応iPadは同じApple標準ARを使用し、アプリ独自の机認識は行いません。Androidは2品を別々に読み込む共通空間ARを使用します。追加アプリや印刷マーカーは必要ありません。</p>
     <p>推奨環境はiOS・iPadOS 16.4以降のSafari、Androidの最新版Chromeです。旧型iPadの3Dカメラ比較は空間固定を行いません。</p>
     <p><a href="model-credits.html">3Dモデルの権利表記</a></p>
   </dialog>
@@ -192,3 +192,4 @@
   <noscript><p class="noscript">この画面にはJavaScriptが必要です。</p></noscript>
 </body>
 </html>
+
