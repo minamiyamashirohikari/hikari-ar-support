@@ -953,4 +953,3 @@
     spatialArOpening = false;
   });
 })();
-
