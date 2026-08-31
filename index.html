@@ -13,8 +13,8 @@
   <script defer src="markerless-models.js?v=20260817-gyudonfit39"></script>
   <script defer src="menu_data.js?v=20260831-menu47"></script>
   <script defer src="glb-pair-composer.js?v=20260716-ipad2"></script>
-  <script defer src="ar-trial-log.js?v=20260831-operations47"></script>
-  <script defer src="markerless-ar-v214.js"></script>
+  <script defer src="ar-trial-log.js?v=20260901-diagnostics48"></script>
+  <script defer src="markerless-ar-v215.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#menuGrid">料理一覧へ移動</a>
@@ -160,14 +160,14 @@
       </div>
       <button id="closeTrialButton" type="button" aria-label="試行記録を閉じる">閉じる</button>
     </div>
-    <p class="trial-privacy">氏名や端末固有番号は記録せず、データはこの端末内だけに保存します。</p>
+    <p class="trial-privacy">氏名・端末固有番号・生のブラウザ情報は記録しません。端末・OS・ブラウザの大分類と機能可否だけを、この端末内に保存します。</p>
     <dl class="trial-summary">
       <div><dt>完了試行</dt><dd id="trialAttempts">0回</dd></div>
       <div><dt>表示成功率</dt><dd id="trialSuccessRate">—</dd><small>目安 95%以上</small></div>
       <div><dt>表示時間中央値</dt><dd id="trialMedianTime">—</dd><small>目安 3秒以内</small></div>
       <div><dt>職員介助率</dt><dd id="trialAssistRate">—</dd><small>目安 10%以下</small></div>
     </dl>
-    <p class="trial-guidance" id="trialGuidance">試行を始めると、表示・失敗・再起動・介助を記録します。</p>
+    <p class="trial-guidance" id="trialGuidance">表示・失敗・再起動・介助を記録します。紙面切替と30分以上完了しなかった試行は未成功に含めます。</p>
     <div class="trial-actions">
       <button id="recordAssistButton" type="button">直前の試行に職員介助を記録</button>
       <button id="exportTrialButton" type="button">CSVを書き出す</button>

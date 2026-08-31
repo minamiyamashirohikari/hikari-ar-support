@@ -7,6 +7,7 @@
   const ENGINE_CORE_TIMEOUT_MS = 15000;
   const SLAM_CHUNK_TIMEOUT_MS = 30000;
   const REALITY_TIMEOUT_MS = 30000;
+  const RECENTER_RECOVERY_TIMEOUT_MS = 10000;
   const HIT_TEST_TYPES = ['DETECTED_SURFACE', 'ESTIMATED_SURFACE', 'FEATURE_POINT'];
   const HIT_PRIORITY = [...HIT_TEST_TYPES, 'UNSPECIFIED'];
   const PREVIEW_SURFACE_PROBE_MS = 450;
@@ -15,6 +16,9 @@
   const items = Array.isArray(window.MENU_ITEMS) ? window.MENU_ITEMS : [];
   const byId = new Map(items.map((item) => [item.id, item]));
   const trialLog = window.HIKARI_AR_TRIAL_LOG;
+  const isAndroid = /Android/i.test(navigator.userAgent || '');
+  const deviceMemoryGb = Number(navigator.deviceMemory);
+  const parallelDishLoading = isAndroid && Number.isFinite(deviceMemoryGb) && deviceMemoryGb >= 6;
 
   const arApp = document.getElementById('arApp');
   const scene = document.getElementById('xrScene');
@@ -44,9 +48,10 @@
   const paperSwitchLink = document.getElementById('paperSwitchLink');
   const fatalPaperLink = document.getElementById('fatalPaperLink');
 
-  let modelLoadTimer = 0;
+  const modelLoadTimers = [0, 0];
   let engineLoadTimer = 0;
   let realityReadyTimer = 0;
+  let recenterRecoveryTimer = 0;
   let loadedDishCount = 0;
   let engineAttempt = 0;
   let enginePreparing = false;
@@ -92,6 +97,7 @@
   const selected = selectedIds();
   const fallbackRequested = new URLSearchParams(location.search).get('camera') === '1';
   trialLog?.transition('共通空間AR', selected);
+  trialLog?.markStage('xr_script', 'XR_SCRIPT_LOADING');
 
   function paperComparisonUrl() {
     const url = new URL('paper-comparison.html', document.baseURI);
@@ -112,6 +118,12 @@
     if (!realityReadyTimer) return;
     window.clearTimeout(realityReadyTimer);
     realityReadyTimer = 0;
+  }
+
+  function clearRecenterRecoveryTimer() {
+    if (!recenterRecoveryTimer) return;
+    window.clearTimeout(recenterRecoveryTimer);
+    recenterRecoveryTimer = 0;
   }
 
   function clearEngineLoadTimer() {
@@ -155,19 +167,28 @@
     }
   }
 
-  function showFatal(title, detail) {
+  function showFatal(title, detail, diagnostic) {
     if (fatalShown || pageDisposed) return;
     fatalShown = true;
     clearEngineLoadTimer();
     clearRealityReadyTimer();
+    clearRecenterRecoveryTimer();
+    clearModelLoadTimers();
     stopPreviewLoop();
     stopFallbackCamera();
+    cameraStarted = false;
+    trackingNormal = false;
+    try {
+      window.XR8?.stop?.();
+    } catch (_) {
+      // The explicit retry remains available if a partial engine cannot stop cleanly.
+    }
     fatalTitle.textContent = title;
     fatalDetail.textContent = detail;
     fatalPanel.hidden = false;
     startGate.hidden = true;
     setStatus(title, 'error');
-    trialLog?.markFailure(`${title}: ${detail}`);
+    trialLog?.markFailure(`${title}: ${detail}`, diagnostic);
     updateControls();
   }
 
@@ -187,10 +208,15 @@
     return 'AR機能またはカメラを開始できませんでした。通信を確認し、SafariまたはChromeで開き直してください。';
   }
 
-  function clearModelLoadTimer() {
-    if (!modelLoadTimer) return;
-    window.clearTimeout(modelLoadTimer);
-    modelLoadTimer = 0;
+  function clearModelLoadTimer(index) {
+    const timer = modelLoadTimers[index];
+    if (!timer) return;
+    window.clearTimeout(timer);
+    modelLoadTimers[index] = 0;
+  }
+
+  function clearModelLoadTimers() {
+    modelLoadTimers.forEach((_, index) => clearModelLoadTimer(index));
   }
 
   function normalizeDishEntity(entity, offsetX, model) {
@@ -227,12 +253,14 @@
     });
   }
 
-  function armModelLoadTimer(item) {
-    clearModelLoadTimer();
-    modelLoadTimer = window.setTimeout(() => {
+  function armModelLoadTimer(index, item) {
+    clearModelLoadTimer(index);
+    modelLoadTimers[index] = window.setTimeout(() => {
+      modelLoadTimers[index] = 0;
       showFatal(
         `${item.name}の立体を読み込めませんでした`,
-        '通信を確認して「もう一度試す」を押してください。高品質モデルは変更せず再読み込みします。'
+        '通信を確認して「もう一度試す」を押してください。高品質モデルは変更せず再読み込みします。',
+        { stage: `model_${index + 1}`, code: `MODEL_${index + 1}_TIMEOUT` }
       );
     }, MODEL_TIMEOUT_MS);
   }
@@ -245,8 +273,8 @@
       showFatal('料理の3Dモデルが見つかりません', '料理選択に戻り、別の2品を選んでください。');
       return;
     }
-    setStatus(`${item.name}を読み込んでいます（${index + 1}/2）`);
-    armModelLoadTimer(item);
+    trialLog?.markStage(`model_${index + 1}`, `MODEL_${index + 1}_LOADING`);
+    armModelLoadTimer(index, item);
     entity.dataset.modelLoaded = 'false';
     entity.setAttribute('gltf-model', new URL(item.modelUrl, document.baseURI).href);
   }
@@ -254,7 +282,7 @@
   function handleDishLoaded(index, event) {
     const entity = dishEntities[index];
     if (entity.dataset.modelLoaded === 'true' || fatalShown || pageDisposed) return;
-    clearModelLoadTimer();
+    clearModelLoadTimer(index);
     try {
       normalizeDishEntity(entity, index === 0 ? -0.145 : 0.145, event.detail?.model);
     } catch (_) {
@@ -263,8 +291,10 @@
     }
     entity.dataset.modelLoaded = 'true';
     loadedDishCount += 1;
-    if (index === 0) {
-      beginDishLoad(1);
+    trialLog?.markStage(`model_${index + 1}`, `MODEL_${index + 1}_READY`);
+    if (!parallelDishLoading && index === 0) beginDishLoad(1);
+    if (loadedDishCount < dishEntities.length) {
+      setStatus(`料理の立体を準備しています（${loadedDishCount}/2）`);
       return;
     }
 
@@ -290,8 +320,11 @@
       return;
     }
     loadedDishCount = 0;
-    setStatus(`${left.name}と${right.name}を順番に準備しています`);
+    setStatus(parallelDishLoading
+      ? `${left.name}と${right.name}を同時に準備しています`
+      : `${left.name}と${right.name}を順番に準備しています`);
     beginDishLoad(0);
+    if (parallelDishLoading) beginDishLoad(1);
   }
 
   function persistSelection() {
@@ -307,6 +340,7 @@
     clearEngineLoadTimer();
     enginePreparing = false;
     engineReady = true;
+    trialLog?.markStage('slam', 'SLAM_READY');
     prepareDishModels();
     startCameraButton.disabled = false;
     startCameraButton.textContent = 'カメラを開始';
@@ -370,7 +404,7 @@
   function prepareSpatialEngine() {
     if (engineReady || enginePreparing || fallbackMode || fallbackRouting || fatalShown || pageDisposed) return;
     if (!window.XR8) {
-      routeToCameraFallback('空間認識を読み込めないため、軽量表示へ切り替えています');
+      routeToCameraFallback('空間認識機能を読み込めませんでした。「もう一度試す」で再起動するか、「紙面表示へ切替」を選んでください。');
       return;
     }
     if (window.XR8.XrController) {
@@ -378,17 +412,18 @@
       return;
     }
     if (typeof window.XR8.loadChunk !== 'function') {
-      routeToCameraFallback('空間認識に対応していないため、軽量表示へ切り替えています');
+      routeToCameraFallback('この端末またはブラウザは空間認識に対応していません。「もう一度試す」か、「紙面表示へ切替」を選んでください。');
       return;
     }
 
     enginePreparing = true;
+    trialLog?.markStage('slam', 'SLAM_LOADING');
     const attempt = ++engineAttempt;
     setStatus('空間認識を準備しています');
     clearEngineLoadTimer();
     engineLoadTimer = window.setTimeout(() => {
       if (attempt === engineAttempt && !engineReady && !fallbackMode && !fatalShown && !pageDisposed) {
-        routeToCameraFallback('空間認識の準備に時間がかかるため、軽量表示へ切り替えています');
+        routeToCameraFallback('空間認識の準備が時間内に完了しませんでした。「もう一度試す」で再起動するか、「紙面表示へ切替」を選んでください。');
       }
     }, SLAM_CHUNK_TIMEOUT_MS);
 
@@ -401,7 +436,7 @@
       })
       .catch(() => {
         if (attempt === engineAttempt && !fallbackMode && !fallbackRouting && !fatalShown && !pageDisposed) {
-          routeToCameraFallback('空間認識を開始できないため、軽量表示へ切り替えています');
+          routeToCameraFallback('空間認識を開始できませんでした。「もう一度試す」で再起動するか、「紙面表示へ切替」を選んでください。');
         }
       });
   }
@@ -414,18 +449,20 @@
     }
     window.addEventListener('xrloaded', prepareSpatialEngine, { once: true });
     const script = document.createElement('script');
+    trialLog?.markStage('xr_script', 'XR_SCRIPT_LOADING');
     script.src = new URL('vendor/8thwall/xr.js?v=20260819-ipad42', document.baseURI).href;
     script.async = true;
     script.addEventListener('load', () => {
+      trialLog?.markStage('xr_script', 'XR_SCRIPT_READY');
       if (window.XR8) prepareSpatialEngine();
     });
     script.addEventListener('error', () => {
-      routeToCameraFallback('AR機能を読み込めないため、軽量表示へ切り替えています');
+      routeToCameraFallback('AR機能を読み込めませんでした。「もう一度試す」で再起動するか、「紙面表示へ切替」を選んでください。');
     });
     document.head.appendChild(script);
     engineLoadTimer = window.setTimeout(() => {
       if (!window.XR8 && !fallbackMode && !fallbackRouting && !fatalShown && !pageDisposed) {
-        routeToCameraFallback('AR機能の準備に時間がかかるため、軽量表示へ切り替えています');
+        routeToCameraFallback('AR機能の準備が時間内に完了しませんでした。「もう一度試す」で再起動するか、「紙面表示へ切替」を選んでください。');
       }
     }, ENGINE_CORE_TIMEOUT_MS);
   }
@@ -490,12 +527,13 @@
     startCameraButton.disabled = true;
     startCameraButton.textContent = 'カメラを起動しています';
     setStatus('カメラの許可を確認しています');
+    trialLog?.markStage('camera_permission', 'CAMERA_REQUESTING');
     clearRealityReadyTimer();
     try {
       scene.setAttribute('xrweb', 'allowedDevices: mobile; scale: absolute');
     } catch (error) {
       cameraStarted = false;
-      routeToCameraFallback('空間ARを開始できないため、軽量表示へ切り替えています');
+      routeToCameraFallback('空間ARを開始できませんでした。「もう一度試す」で再起動するか、「紙面表示へ切替」を選んでください。');
     }
   }
 
@@ -503,7 +541,7 @@
     if (realityReady || fatalShown || realityReadyTimer) return;
     realityReadyTimer = window.setTimeout(() => {
       if (!realityReady && !fatalShown) {
-        routeToCameraFallback('空間認識を開始できないため、軽量表示へ切り替えています');
+        routeToCameraFallback('空間認識を開始できませんでした。「もう一度試す」で再起動するか、「紙面表示へ切替」を選んでください。');
       }
     }, REALITY_TIMEOUT_MS);
   }
@@ -588,7 +626,10 @@
         : '料理を仮表示しました。机をゆっくり映すと自動で固定します',
       fallbackMode ? 'ready' : 'warning');
       startPreviewLoop();
-      trialLog?.markDisplay();
+      trialLog?.markDisplay({
+        stage: fallbackMode ? 'camera_preview' : 'spatial_preview',
+        code: fallbackMode ? 'CAMERA_3D_VISIBLE' : 'SPATIAL_PREVIEW_VISIBLE'
+      });
     }
     updateControls();
     return shown;
@@ -618,7 +659,10 @@
     setStatus(automatic
       ? '机を検出し、料理を自動で固定しました。端末を動かして確認できます'
       : '料理を固定しました。端末を動かして横や斜めから確認できます', 'ready');
-    trialLog?.markAnchored();
+    trialLog?.markAnchored({
+      stage: 'surface_anchor',
+      code: automatic ? 'SURFACE_AUTO_ANCHORED' : 'SURFACE_MANUAL_ANCHORED'
+    });
     updateControls();
     return true;
   }
@@ -703,12 +747,26 @@
     startPreviewLoop();
     setStatus('料理を仮表示しながら、机の位置を取り直しています');
     trialLog?.markReset();
+    clearRecenterRecoveryTimer();
     try {
       window.XR8?.XrController?.recenter();
     } catch (_) {
-      location.reload();
+      showFatal(
+        '位置を取り直せませんでした',
+        '「もう一度試す」でARを再起動するか、「紙面表示へ切替」を選んでください。',
+        { stage: 'tracking_recovery', code: 'RECENTER_FAILED' }
+      );
       return;
     }
+    recenterRecoveryTimer = window.setTimeout(() => {
+      recenterRecoveryTimer = 0;
+      if (trackingNormal || fatalShown || pageDisposed) return;
+      showFatal(
+        '位置を取り直せませんでした',
+        '10秒以内に追跡が安定しませんでした。「もう一度試す」でARを再起動するか、「紙面表示へ切替」を選んでください。',
+        { stage: 'tracking_recovery', code: 'TRACKING_RECOVERY_TIMEOUT' }
+      );
+    }, RECENTER_RECOVERY_TIMEOUT_MS);
     updateControls();
   }
 
@@ -721,11 +779,12 @@
   dishEntities.forEach((entity, index) => {
     entity.addEventListener('model-loaded', (event) => handleDishLoaded(index, event));
     entity.addEventListener('model-error', () => {
-      clearModelLoadTimer();
+      clearModelLoadTimer(index);
       const item = byId.get(selected[index]);
       showFatal(
         `${item?.name || '料理'}の立体を表示できませんでした`,
-        '高品質モデルを読み直すため、「もう一度試す」を押してください。'
+        '高品質モデルを読み直すため、「もう一度試す」を押してください。',
+        { stage: `model_${index + 1}`, code: `MODEL_${index + 1}_LOAD_FAILED` }
       );
     });
   });
@@ -733,13 +792,18 @@
   scene.addEventListener('camerastatuschange', (event) => {
     if (fallbackMode || pageDisposed) return;
     const status = event.detail?.status;
-    if (status === 'requesting') setStatus('カメラの使用を許可してください');
+    if (status === 'requesting') {
+      setStatus('カメラの使用を許可してください');
+      trialLog?.markStage('camera_permission', 'CAMERA_REQUESTING');
+    }
     if (status === 'hasStream') {
       setStatus('カメラ映像を開始しています');
+      trialLog?.markStage('camera_stream', 'CAMERA_STREAM_READY');
       armRealityReadyTimer();
     }
     if (status === 'hasVideo') {
       setStatus('机をゆっくり映してください');
+      trialLog?.markStage('camera_video', 'CAMERA_VIDEO_READY');
       armRealityReadyTimer();
     }
     if (status === 'failed') {
@@ -748,7 +812,7 @@
         showFatal('カメラを開始できませんでした', detail);
       } else {
         cameraStarted = false;
-        routeToCameraFallback('空間ARカメラを開始できないため、軽量表示へ切り替えています');
+        routeToCameraFallback('空間ARのカメラを開始できませんでした。「もう一度試す」で再起動するか、「紙面表示へ切替」を選んでください。');
       }
     }
   });
@@ -757,6 +821,7 @@
     if (fallbackMode || fallbackRouting || pageDisposed) return;
     clearRealityReadyTimer();
     realityReady = true;
+    trialLog?.markStage('reality_ready', 'REALITY_READY');
     startGate.hidden = true;
     updateControls();
     ensurePreviewVisible();
@@ -766,6 +831,8 @@
   scene.addEventListener('xrtrackingstatus', (event) => {
     if (fallbackMode || fallbackRouting || pageDisposed) return;
     trackingNormal = event.detail?.status === 'NORMAL';
+    if (trackingNormal) clearRecenterRecoveryTimer();
+    if (trackingNormal) trialLog?.markStage('tracking', 'TRACKING_NORMAL');
     ensurePreviewVisible();
     if (trackingNormal) {
       if (placed) setStatus('料理は空間に固定されています', 'ready');
@@ -790,7 +857,7 @@
       showFatal('空間ARを開始できませんでした', detail);
     } else {
       cameraStarted = false;
-      routeToCameraFallback('空間認識を開始できないため、軽量表示へ切り替えています');
+      routeToCameraFallback('空間認識を開始できませんでした。「もう一度試す」で再起動するか、「紙面表示へ切替」を選んでください。');
     }
   });
 
@@ -822,8 +889,9 @@
     pageDisposed = true;
     engineAttempt += 1;
     clearEngineLoadTimer();
-    clearModelLoadTimer();
+    clearModelLoadTimers();
     clearRealityReadyTimer();
+    clearRecenterRecoveryTimer();
     stopPreviewLoop();
     stopFallbackCamera();
     try {
