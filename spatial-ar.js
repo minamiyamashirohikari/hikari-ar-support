@@ -14,6 +14,7 @@
   const SURFACE_STABILITY_DISTANCE = 0.12;
   const items = Array.isArray(window.MENU_ITEMS) ? window.MENU_ITEMS : [];
   const byId = new Map(items.map((item) => [item.id, item]));
+  const trialLog = window.HIKARI_AR_TRIAL_LOG;
 
   const arApp = document.getElementById('arApp');
   const scene = document.getElementById('xrScene');
@@ -39,6 +40,9 @@
   const fatalTitle = document.getElementById('fatalTitle');
   const fatalDetail = document.getElementById('fatalDetail');
   const simpleArLink = document.getElementById('simpleArLink');
+  const staffAssistButton = document.getElementById('staffAssistButton');
+  const paperSwitchLink = document.getElementById('paperSwitchLink');
+  const fatalPaperLink = document.getElementById('fatalPaperLink');
 
   let modelLoadTimer = 0;
   let engineLoadTimer = 0;
@@ -69,6 +73,7 @@
   let previewOffset = null;
   let stableSurfaceHit = null;
   let stableSurfaceHitCount = 0;
+  let automaticCameraStartChecked = false;
 
   function selectedIds() {
     const params = new URLSearchParams(location.search);
@@ -86,6 +91,17 @@
 
   const selected = selectedIds();
   const fallbackRequested = new URLSearchParams(location.search).get('camera') === '1';
+  trialLog?.transition('共通空間AR', selected);
+
+  function paperComparisonUrl() {
+    const url = new URL('paper-comparison.html', document.baseURI);
+    url.searchParams.set('left', selected[0]);
+    url.searchParams.set('right', selected[1]);
+    return url.href;
+  }
+
+  paperSwitchLink.href = paperComparisonUrl();
+  fatalPaperLink.href = paperComparisonUrl();
 
   function setStatus(text, tone = 'loading') {
     statusPill.textContent = text;
@@ -151,6 +167,7 @@
     fatalPanel.hidden = false;
     startGate.hidden = true;
     setStatus(title, 'error');
+    trialLog?.markFailure(`${title}: ${detail}`);
     updateControls();
   }
 
@@ -294,6 +311,18 @@
     startCameraButton.disabled = false;
     startCameraButton.textContent = 'カメラを開始';
     if (modelReady) setStatus('「カメラを開始」を押してください', 'ready');
+    tryAutomaticCameraStart();
+  }
+
+  async function tryAutomaticCameraStart() {
+    if (automaticCameraStartChecked || cameraStarted || fatalShown || pageDisposed) return;
+    automaticCameraStartChecked = true;
+    try {
+      const permission = await navigator.permissions?.query?.({ name: 'camera' });
+      if (permission?.state === 'granted' && engineReady && !cameraStarted) startCamera();
+    } catch (_) {
+      // First use still has the visible camera button required by Safari/Chrome.
+    }
   }
 
   function fallbackUrl() {
@@ -559,6 +588,7 @@
         : '料理を仮表示しました。机をゆっくり映すと自動で固定します',
       fallbackMode ? 'ready' : 'warning');
       startPreviewLoop();
+      trialLog?.markDisplay();
     }
     updateControls();
     return shown;
@@ -588,6 +618,7 @@
     setStatus(automatic
       ? '机を検出し、料理を自動で固定しました。端末を動かして確認できます'
       : '料理を固定しました。端末を動かして横や斜めから確認できます', 'ready');
+    trialLog?.markAnchored();
     updateControls();
     return true;
   }
@@ -671,6 +702,7 @@
     updatePreviewPose();
     startPreviewLoop();
     setStatus('料理を仮表示しながら、机の位置を取り直しています');
+    trialLog?.markReset();
     try {
       window.XR8?.XrController?.recenter();
     } catch (_) {
@@ -770,9 +802,21 @@
     modelScale = 1;
     applyScale();
     setStatus('実物大に戻しました', 'ready');
+    trialLog?.markReset();
   });
   document.getElementById('sizeUpButton').addEventListener('click', () => changeScale(0.1));
-  document.getElementById('retryButton').addEventListener('click', () => location.reload());
+  document.getElementById('retryButton').addEventListener('click', () => {
+    trialLog?.markRestart();
+    location.reload();
+  });
+  staffAssistButton.addEventListener('click', () => {
+    const recorded = trialLog?.markStaffAssist();
+    staffAssistButton.dataset.recorded = String(Boolean(recorded));
+    staffAssistButton.textContent = recorded ? '職員介助を記録済み' : '記録できませんでした';
+  });
+  [paperSwitchLink, fatalPaperLink].forEach((link) => {
+    link.addEventListener('click', () => trialLog?.markPaperSwitch());
+  });
 
   window.addEventListener('pagehide', () => {
     pageDisposed = true;

@@ -11,9 +11,10 @@
   <script defer src="vendor/qrcode-1.0.0.min.js"></script>
   <script defer src="real_models.js?v=20260817-gyudonfit39"></script>
   <script defer src="markerless-models.js?v=20260817-gyudonfit39"></script>
-  <script defer src="menu_data.js?v=20260817-gyudonfit39"></script>
+  <script defer src="menu_data.js?v=20260831-menu47"></script>
   <script defer src="glb-pair-composer.js?v=20260716-ipad2"></script>
-  <script defer src="markerless-ar-v213.js"></script>
+  <script defer src="ar-trial-log.js?v=20260831-operations47"></script>
+  <script defer src="markerless-ar-v214.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#menuGrid">料理一覧へ移動</a>
@@ -24,6 +25,7 @@
       <h1>食事を立体でくらべる</h1>
     </div>
     <div class="header-actions">
+      <button class="quiet-button" id="trialLogButton" type="button">試行記録</button>
       <button class="quiet-button" id="shareButton" type="button">URL・QRコード</button>
       <button class="quiet-button" id="helpButton" type="button">使い方</button>
     </div>
@@ -83,6 +85,9 @@
         <button class="browser-ar-button" id="browserArButton" type="button" disabled>
           標準ARを起動
         </button>
+        <button class="paper-view-button" id="paperComparisonButton" type="button">
+          紙面表示
+        </button>
         <button class="simple-camera-button" id="simpleCameraArButton" type="button" disabled hidden>
           3Dカメラ比較
         </button>
@@ -139,10 +144,34 @@
       <li>Androidでは料理が見える位置に表示され、検出した面へ固定できます。</li>
       <li>端末を動かすと、料理を横や斜めから確認できます。</li>
       <li>iPadOS 16.4未満では「3Dカメラ比較」で、高品質な2品をカメラ映像の上に表示します。</li>
+      <li>うまく表示できない場合は「紙面表示」へすぐ切り替えられます。</li>
     </ol>
     <p>iPhone・対応iPadは同じApple標準ARを使用し、アプリ独自の机認識は行いません。Androidは2品を別々に読み込む共通空間ARを使用します。追加アプリや印刷マーカーは必要ありません。</p>
+    <p>比較の公平性を保つため、2品は同じ基準寸法・明るさ・カメラ角度で表示します。初回のみカメラ許可が必要ですが、許可済みの共通空間ARは次回からワンタップでカメラ開始を試みます。</p>
     <p>推奨環境はiOS・iPadOS 16.4以降のSafari、Androidの最新版Chromeです。旧型iPadの3Dカメラ比較は空間固定を行いません。</p>
     <p><a href="model-credits.html">3Dモデルの権利表記</a></p>
+  </dialog>
+
+  <dialog class="trial-dialog" id="trialDialog">
+    <div class="dialog-head">
+      <div>
+        <p class="step-label">この端末内の運用記録</p>
+        <h2>AR試行記録</h2>
+      </div>
+      <button id="closeTrialButton" type="button" aria-label="試行記録を閉じる">閉じる</button>
+    </div>
+    <p class="trial-privacy">氏名や端末固有番号は記録せず、データはこの端末内だけに保存します。</p>
+    <dl class="trial-summary">
+      <div><dt>完了試行</dt><dd id="trialAttempts">0回</dd></div>
+      <div><dt>表示成功率</dt><dd id="trialSuccessRate">—</dd><small>目安 95%以上</small></div>
+      <div><dt>表示時間中央値</dt><dd id="trialMedianTime">—</dd><small>目安 3秒以内</small></div>
+      <div><dt>職員介助率</dt><dd id="trialAssistRate">—</dd><small>目安 10%以下</small></div>
+    </dl>
+    <p class="trial-guidance" id="trialGuidance">試行を始めると、表示・失敗・再起動・介助を記録します。</p>
+    <div class="trial-actions">
+      <button id="recordAssistButton" type="button">直前の試行に職員介助を記録</button>
+      <button id="exportTrialButton" type="button">CSVを書き出す</button>
+    </div>
   </dialog>
 
   <dialog class="share-dialog" id="shareDialog">
@@ -184,6 +213,7 @@
         <button id="cameraSizeDownButton" type="button" aria-label="料理を小さくする">小さく</button>
         <button id="cameraResetButton" type="button">元に戻す</button>
         <button id="cameraSizeUpButton" type="button" aria-label="料理を大きくする">大きく</button>
+        <button id="paperCameraArButton" type="button">紙面表示</button>
         <button id="retryCameraArButton" type="button" hidden>カメラ再試行</button>
       </div>
     </footer>

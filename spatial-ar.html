@@ -6,13 +6,14 @@
   <meta name="theme-color" content="#102423">
   <meta name="description" content="iPhone、iPad、Androidで同じ操作ができる、料理比較用のマーカー不要空間ARです。">
   <title>料理を空間に置く | ひかり意思決定支援</title>
-  <link rel="stylesheet" href="spatial-ar.css?v=20260820-prebuilt46">
+  <link rel="stylesheet" href="spatial-ar.css?v=20260831-operations47">
   <script src="vendor/8thwall/8frame-1.5.0.min.js"></script>
   <script src="vendor/8thwall/xrextras.js"></script>
   <script defer src="real_models.js?v=20260817-gyudonfit39"></script>
   <script defer src="markerless-models.js?v=20260817-gyudonfit39"></script>
-  <script defer src="menu_data.js?v=20260817-gyudonfit39"></script>
-  <script defer src="spatial-ar.js?v=20260820-prebuilt46"></script>
+  <script defer src="menu_data.js?v=20260831-menu47"></script>
+  <script defer src="ar-trial-log.js?v=20260831-operations47"></script>
+  <script defer src="spatial-ar.js?v=20260831-operations47"></script>
 </head>
 <body>
   <main class="ar-app" id="arApp">
@@ -68,7 +69,7 @@
         <strong>空間AR</strong>
         <span>iPhone・iPad・Android 共通</span>
       </div>
-      <button class="round-control" id="recenterButton" type="button" disabled>再配置</button>
+      <button class="round-control" id="recenterButton" type="button" disabled>リセット</button>
     </header>
 
     <section class="status-pill" id="statusPill" role="status" aria-live="polite" data-tone="loading">
@@ -100,6 +101,10 @@
 
     <footer class="ar-footer">
       <button class="place-button" id="placeButton" type="button" disabled>ここに置く</button>
+      <div class="operation-controls">
+        <button id="staffAssistButton" type="button">職員介助を記録</button>
+        <a id="paperSwitchLink" href="paper-comparison.html">紙面表示へ切替</a>
+      </div>
       <div class="size-controls" id="sizeControls" hidden>
         <button id="sizeDownButton" type="button" aria-label="料理を小さくする">小さく</button>
         <button id="sizeResetButton" type="button">実物大</button>
@@ -121,6 +126,7 @@
         <p id="fatalDetail">通信とカメラ設定を確認してください。</p>
         <div class="fatal-actions">
           <button id="retryButton" type="button">もう一度試す</button>
+          <a id="fatalPaperLink" href="paper-comparison.html">紙面表示へ切替</a>
           <a href="./" id="simpleArLink" hidden>料理選択に戻る</a>
           <a href="./">料理選択に戻る</a>
         </div>

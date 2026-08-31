@@ -1,0 +1,92 @@
+:root {
+  --ink: #102423;
+  --paper: #fffaf1;
+  --teal: #176b6c;
+  --orange: #dc653a;
+}
+
+* { box-sizing: border-box; }
+html { background: #eee8dc; }
+body {
+  min-height: 100vh;
+  margin: 0;
+  color: var(--ink);
+  background: var(--paper);
+  font-family: "BIZ UDPGothic", "Yu Gothic UI", "Hiragino Sans", sans-serif;
+  font-weight: 700;
+}
+button,
+a { font: inherit; }
+
+.paper-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 22px 24px;
+}
+.paper-header div { text-align: center; }
+.paper-header p { margin: 0 0 3px; color: #526461; font-size: 13px; }
+.paper-header h1 { margin: 0; font-size: clamp(24px, 4vw, 38px); }
+.paper-header a,
+.paper-header button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 18px;
+  color: #fff;
+  background: var(--teal);
+  text-decoration: none;
+}
+.paper-header button { background: var(--orange); }
+
+main { max-width: 1180px; margin: 0 auto; padding: 8px 24px 32px; }
+.fairness-note,
+.paper-note { margin: 8px 0 20px; color: #526461; text-align: center; }
+.paper-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+}
+.paper-card {
+  overflow: hidden;
+  border: 3px solid #d9d1c2;
+  border-radius: 30px;
+  background: #fff;
+  box-shadow: 0 16px 48px rgba(36, 44, 42, .1);
+  text-align: center;
+}
+.paper-card p { margin: 18px 18px 8px; color: var(--teal); font-size: 18px; }
+.paper-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  background: #f6f1e8;
+}
+.paper-card h2 { margin: 18px; font-size: clamp(28px, 5vw, 50px); }
+.paper-versus { font-size: clamp(22px, 4vw, 38px); }
+
+@media (max-width: 700px) {
+  .paper-header { grid-template-columns: 1fr 1fr; }
+  .paper-header div { grid-column: 1 / -1; grid-row: 1; }
+  .paper-header a,
+  .paper-header button { text-align: center; }
+  .paper-pair { gap: 7px; }
+  .paper-card { border-width: 2px; border-radius: 20px; }
+  .paper-card p { margin: 12px 8px 5px; font-size: 14px; }
+  .paper-card h2 { margin: 12px 6px 16px; font-size: clamp(20px, 6vw, 34px); }
+}
+
+@media print {
+  html,
+  body { background: #fff; }
+  .paper-header a,
+  .paper-header button { display: none; }
+  .paper-header { display: block; padding-top: 0; }
+  .paper-card { break-inside: avoid; box-shadow: none; }
+  main { padding-bottom: 0; }
+}

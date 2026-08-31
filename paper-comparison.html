@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fffaf1">
+  <meta name="description" content="選んだ2品を同じ大きさ・角度で確認できる紙面用比較表示です。">
+  <title>紙面でくらべる | ひかり意思決定支援</title>
+  <link rel="stylesheet" href="paper-comparison.css?v=20260831-operations47">
+  <script defer src="real_models.js?v=20260817-gyudonfit39"></script>
+  <script defer src="markerless-models.js?v=20260817-gyudonfit39"></script>
+  <script defer src="menu_data.js?v=20260831-menu47"></script>
+  <script defer src="ar-trial-log.js?v=20260831-operations47"></script>
+  <script defer src="paper-comparison.js?v=20260831-operations47"></script>
+</head>
+<body>
+  <header class="paper-header">
+    <a href="./">料理選択に戻る</a>
+    <div>
+      <p>ARが使いにくいときの代替表示</p>
+      <h1>紙面で2品をくらべる</h1>
+    </div>
+    <button id="printButton" type="button">印刷する</button>
+  </header>
+
+  <main>
+    <p class="fairness-note">ARが使えない場合に、2品を同じ大きさの枠で並べる参考表示です。</p>
+    <section class="paper-pair" aria-label="選択した2品の比較">
+      <article class="paper-card">
+        <p>候補 1</p>
+        <img id="paperImage0" alt="">
+        <h2 id="paperName0">料理を準備しています</h2>
+      </article>
+      <div class="paper-versus" aria-hidden="true">と</div>
+      <article class="paper-card">
+        <p>候補 2</p>
+        <img id="paperImage1" alt="">
+        <h2 id="paperName1">料理を準備しています</h2>
+      </article>
+    </section>
+    <p class="paper-note">画像ごとに撮影条件は異なります。公平な立体比較はAR・3D表示を使用し、この画面は即時切替と印刷用に使用してください。</p>
+  </main>
+</body>
+</html>

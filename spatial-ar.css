@@ -266,6 +266,28 @@ a-scene,
   font-size: clamp(18px, 4.5vw, 23px);
 }
 
+.operation-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+}
+
+.operation-controls button,
+.operation-controls a {
+  min-height: 44px;
+  border: 1px solid rgba(255, 255, 255, .52);
+  border-radius: 999px;
+  padding: 8px 15px;
+  color: #fff;
+  background: rgba(8, 28, 26, .8);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+  text-decoration: none;
+  backdrop-filter: blur(12px);
+}
+
+.operation-controls button[data-recorded="true"] { background: rgba(18, 91, 75, .9); }
+
 .size-controls {
   display: flex;
   flex-wrap: wrap;
@@ -324,6 +346,9 @@ a:focus-visible { outline: 4px solid rgba(255, 212, 91, .92); outline-offset: 3p
   .aim-guide { top: 50%; width: 62px; height: 62px; }
   .place-button { width: min(440px, 56vw); min-height: 48px; font-size: 17px; }
   .size-controls { position: absolute; right: var(--safe-right); bottom: var(--safe-bottom); flex-direction: column; }
+  .operation-controls { position: absolute; left: var(--safe-left); bottom: var(--safe-bottom); flex-direction: column; }
+  .operation-controls button,
+  .operation-controls a { min-height: 38px; padding: 6px 12px; }
   .size-controls button { min-height: 38px; padding: 6px 12px; }
   .engine-notice { max-width: 48vw; justify-self: start; text-align: left; }
   .start-card { padding: 20px 26px; }
